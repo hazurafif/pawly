@@ -110,4 +110,18 @@ describe('Repository', () => {
     const missing = await r.getMissingPhotos();
     expect(missing).not.toContain('phX');
   });
+
+  it('applyChanges does not advance maxUpdatedAt for lost-LWW rows', async () => {
+    const r = await makeRepo();
+    await r.upsertLocal('cats', catRow('c1', '2026-07-10T00:00:00.000Z'));
+    const res = await r.applyChanges({ cats: [catRow('c1', '2026-07-05T00:00:00.000Z')] });
+    expect(res.maxUpdatedAt).toBeNull();
+  });
+
+  it('upsertLocal rolls back on failure', async () => {
+    const r = await makeRepo();
+    await expect(r.upsertLocal('cats', catRow('c1', 'bad-format'))).rejects.toThrow();
+    expect(await r.allCats()).toEqual([]);
+    expect(await r.getDirtyRows()).toEqual([]);
+  });
 });

@@ -10,27 +10,58 @@ export interface ApplyResult {
   maxUpdatedAt: string | null;
 }
 
+// NOT NULL columns without defaults: a row missing any of these must not be
+// written (an absent key is NOT "unchanged" — it would NULL the column).
+const REQUIRED_COLUMNS: Record<TableName, readonly string[]> = {
+  cats: ['name', 'created_at', 'updated_at'],
+  moments: ['kind', 'occurred_at', 'created_at', 'updated_at'],
+  photos: ['created_at', 'updated_at'],
+  reminders: ['title', 'time', 'days_of_week', 'created_at', 'updated_at'],
+  reminder_completions: ['reminder_id', 'completed_at', 'created_at', 'updated_at'],
+  purchases: ['item', 'price', 'date', 'created_at', 'updated_at'],
+};
+
 // All phone-side data access. Takes the Db facade so tests run on sql.js.
 export class Repository {
   constructor(private readonly db: Db) {}
 
+  // The Db facade is a single shared connection: BEGIN/COMMIT calls must not
+  // overlap, or a nested BEGIN rejects. This promise chain serializes the
+  // transactional methods.
+  private txQueue: Promise<unknown> = Promise.resolve();
+
+  private withTx<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.txQueue.then(() => fn());
+    // keep the chain alive even when fn rejects
+    this.txQueue = run.catch(() => {});
+    return run;
+  }
+
   // --- local writes (dirty tracking) ---
 
+  // Invariant: callers pass FULL rows (load-then-save). Absent keys are NOT
+  // treated as "unchanged" — valuesFor rejects rows missing required columns.
   async upsertLocal(table: TableName, row: Row): Promise<void> {
-    const id = row.id as string;
-    await this.db.exec('BEGIN');
-    try {
-      await this.db.run(upsertSql(table), this.valuesFor(table, row));
-      await this.db.run(
-        `INSERT INTO dirty (table_name, id) VALUES (?, ?)
-         ON CONFLICT(table_name, id) DO NOTHING`,
-        [table, id]
-      );
-      await this.db.exec('COMMIT');
-    } catch (e) {
-      await this.db.exec('ROLLBACK');
-      throw e;
-    }
+    return this.withTx(async () => {
+      const id = row.id as string;
+      await this.db.exec('BEGIN');
+      try {
+        await this.db.run(upsertSql(table), this.valuesFor(table, row));
+        await this.db.run(
+          `INSERT INTO dirty (table_name, id) VALUES (?, ?)
+           ON CONFLICT(table_name, id) DO NOTHING`,
+          [table, id]
+        );
+        await this.db.exec('COMMIT');
+      } catch (e) {
+        try {
+          await this.db.exec('ROLLBACK');
+        } catch {
+          // rollback failure must not mask the original error
+        }
+        throw e;
+      }
+    });
   }
 
   async getDirtyRows(): Promise<DirtyRow[]> {
@@ -59,26 +90,37 @@ export class Repository {
   // --- sync application (no dirty marking) ---
 
   async applyChanges(changes: Partial<Record<TableName, Row[]>>): Promise<ApplyResult> {
-    let maxUpdatedAt: string | null = null;
-    await this.db.exec('BEGIN');
-    try {
-      for (const table of Object.keys(changes) as TableName[]) {
-        for (const row of changes[table]!) {
-          const res = await this.db.run(upsertSql(table), this.valuesFor(table, row));
-          if (res.changes > 0) {
-            const up = row.updated_at as string;
-            if (!maxUpdatedAt || up > maxUpdatedAt) {
-              maxUpdatedAt = up;
+    return this.withTx(async () => {
+      let maxUpdatedAt: string | null = null;
+      await this.db.exec('BEGIN');
+      try {
+        for (const table of Object.keys(changes) as TableName[]) {
+          for (const row of changes[table]!) {
+            const res = await this.db.run(upsertSql(table), this.valuesFor(table, row));
+            // Only APPLIED rows advance the cursor: a row that loses LWW
+            // locally is already present locally, so refetching it is
+            // pointless. (A lost row with updated_at > server time is the
+            // only refetch-loop edge, self-healing once the local push
+            // bumps past it.)
+            if (res.changes > 0) {
+              const up = row.updated_at as string;
+              if (!maxUpdatedAt || up > maxUpdatedAt) {
+                maxUpdatedAt = up;
+              }
             }
           }
         }
+        await this.db.exec('COMMIT');
+      } catch (e) {
+        try {
+          await this.db.exec('ROLLBACK');
+        } catch {
+          // rollback failure must not mask the original error
+        }
+        throw e;
       }
-      await this.db.exec('COMMIT');
-    } catch (e) {
-      await this.db.exec('ROLLBACK');
-      throw e;
-    }
-    return { maxUpdatedAt };
+      return { maxUpdatedAt };
+    });
   }
 
   // --- cursor ---
@@ -121,7 +163,8 @@ export class Repository {
     const rows = await this.db.all<{ id: string }>(
       `SELECT p.id FROM photos p
        WHERE p.deleted_at IS NULL
-         AND NOT EXISTS (SELECT 1 FROM photo_cache c WHERE c.photo_id = p.id)`
+         AND NOT EXISTS (SELECT 1 FROM photo_cache c WHERE c.photo_id = p.id)
+         AND NOT EXISTS (SELECT 1 FROM dirty d WHERE d.table_name = 'photos' AND d.id = p.id)`
     );
     return rows.map((r) => r.id);
   }
@@ -143,6 +186,11 @@ export class Repository {
   }
 
   private valuesFor(table: TableName, row: Row): unknown[] {
+    for (const c of REQUIRED_COLUMNS[table]) {
+      if (row[c] === undefined) {
+        throw new Error('incomplete row for ' + table + ': missing ' + c);
+      }
+    }
     return COLUMNS[table].map((c) => row[c] ?? null);
   }
 }
