@@ -1,5 +1,4 @@
-import initSqlJs, { type Database as SqlJsDatabase } from 'sql.js';
-import { COLUMNS, type Db, type Row, type TableName } from './types';
+import { COLUMNS, type Db, type TableName } from './types';
 
 const MIGRATION_1 = `
 CREATE TABLE cats (
@@ -107,6 +106,11 @@ const MIGRATIONS = [MIGRATION_1];
 export async function migrate(db: Db): Promise<void> {
   const row = await db.first<{ user_version: number }>('PRAGMA user_version');
   let version = row?.user_version ?? 0;
+  if (version > MIGRATIONS.length) {
+    throw new Error(
+      `database schema version ${version} is newer than this app supports (${MIGRATIONS.length})`
+    );
+  }
   for (let i = version; i < MIGRATIONS.length; i++) {
     await db.exec(MIGRATIONS[i]);
     version = i + 1;
@@ -124,53 +128,4 @@ export function upsertSql(table: TableName): string {
     VALUES (${cols.map(() => '?').join(', ')})
     ON CONFLICT(id) DO UPDATE SET ${set}
     WHERE ${table}.updated_at < excluded.updated_at`;
-}
-
-// --- test-only helpers (sql.js) ---
-
-let sqlJsPromise: Promise<SqlJsDatabase> | null = null;
-
-async function sqlJsDb(): Promise<SqlJsDatabase> {
-  if (!sqlJsPromise) {
-    const SQL = await initSqlJs();
-    sqlJsPromise = Promise.resolve(new SQL.Database());
-  }
-  return sqlJsPromise;
-}
-
-export async function openTestDb(): Promise<Db> {
-  const raw = await sqlJsDb();
-  const all = <T = Row>(sql: string, params: unknown[] = []) => {
-    const stmt = raw.prepare(sql);
-    stmt.bind(params as never[]);
-    const out: T[] = [];
-    while (stmt.step()) {
-      out.push(stmt.getAsObject() as unknown as T);
-    }
-    stmt.free();
-    return Promise.resolve(out);
-  };
-  const run = (sql: string, params: unknown[] = []) => {
-    if (params.length === 0) {
-      const res = raw.exec(sql);
-      return Promise.resolve({ changes: res.reduce((n, r) => n + r.values.length, 0) });
-    }
-    const stmt = raw.prepare(sql);
-    stmt.bind(params as never[]);
-    stmt.step();
-    stmt.free();
-    return Promise.resolve({ changes: 1 });
-  };
-  return {
-    exec: (sql) => {
-      raw.exec(sql);
-      return Promise.resolve();
-    },
-    run,
-    all,
-    first: async <T = Row>(sql: string, params: unknown[] = []) => {
-      const rows = await all<T>(sql, params);
-      return rows[0] ?? null;
-    },
-  };
 }
