@@ -26,8 +26,9 @@ var columnsByTable = map[string][]string{
 var pushOrder = []string{"cats", "moments", "purchases", "reminders", "reminder_completions", "photos"}
 
 // migrations are applied in order at startup. Each entry is one numbered migration.
+// version = array index; never reorder or insert — append only
 var migrations = []string{
-	// 1: initial schema
+	// 0: initial schema
 	`
 CREATE TABLE cats (
 	id TEXT PRIMARY KEY,
@@ -179,11 +180,11 @@ func (s *Store) Migrate() error {
 		}
 		if _, err := tx.Exec(m); err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("migration %d: %w", i, err)
 		}
 		if _, err := tx.Exec(`INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)`, i, time.Now().UTC().Format(time.RFC3339)); err != nil {
 			tx.Rollback()
-			return err
+			return fmt.Errorf("migration %d: %w", i, err)
 		}
 		if err := tx.Commit(); err != nil {
 			return err
