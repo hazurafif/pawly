@@ -295,12 +295,12 @@ func (s *Store) PullChanges(since time.Time) (map[string][]map[string]any, error
 			since.UTC().Format(time.RFC3339),
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("pull %s: %w", t, err)
 		}
 		collected, err := scanRows(rows, cols)
 		rows.Close()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("scan %s: %w", t, err)
 		}
 		out[t] = collected
 	}
@@ -328,9 +328,11 @@ func scanRows(rows *sql.Rows, cols []string) ([]map[string]any, error) {
 }
 
 // PushRows upserts all rows in changes, applying tables in pushOrder.
-// Runs in one transaction with foreign keys temporarily disabled so rows
-// may reference rows arriving later in the same batch (e.g. a moment whose
-// cat is in the same push). Returns the number of rows actually applied.
+// Cross-table references work because pushOrder applies parents before
+// children, and defer_foreign_keys defers all FK validation until commit,
+// allowing any intra-batch ordering (e.g. a child row listed before its
+// parent in the same batch). Genuinely orphaned rows fail the commit and
+// roll back the entire push.
 func (s *Store) PushRows(changes map[string][]map[string]any) (int, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -338,23 +340,22 @@ func (s *Store) PushRows(changes map[string][]map[string]any) (int, error) {
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.Exec(`PRAGMA foreign_keys=OFF;`); err != nil {
-		return 0, err
+	// foreign_keys=OFF is a no-op inside a transaction; defer_foreign_keys
+	// is the pragma that works here, postponing FK checks to COMMIT.
+	if _, err := tx.Exec(`PRAGMA defer_foreign_keys=ON;`); err != nil {
+		return 0, fmt.Errorf("push pragma: %w", err)
 	}
 	applied := 0
 	for _, t := range pushOrder {
 		for _, row := range changes[t] {
 			ok, err := upsert(tx, t, row)
 			if err != nil {
-				return applied, fmt.Errorf("push %s: %w", t, err)
+				return 0, fmt.Errorf("push %s: %w", t, err)
 			}
 			if ok {
 				applied++
 			}
 		}
-	}
-	if _, err := tx.Exec(`PRAGMA foreign_keys=ON;`); err != nil {
-		return 0, err
 	}
 	return applied, tx.Commit()
 }

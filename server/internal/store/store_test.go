@@ -455,7 +455,7 @@ func TestPullIncludesDeletedRows(t *testing.T) {
 	}
 }
 
-func TestPushRowsAppliesChildBeforeParent(t *testing.T) {
+func TestPushRowsCatReferencesParentInSameBatch(t *testing.T) {
 	s, err := OpenMemory()
 	if err != nil {
 		t.Fatal(err)
@@ -465,18 +465,16 @@ func TestPushRowsAppliesChildBeforeParent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A moment referencing a cat that hasn't been synced yet — both arrive
-	// in the same batch. foreign_keys=OFF during push makes this work.
+	// Child listed FIRST, parent second — only defer_foreign_keys makes
+	// this pass; pushOrder alone cannot help within one table's slice.
 	changes := map[string][]map[string]any{
-		"moments": {{
-			"id": "m-1", "cat_id": "cat-99", "kind": "milestone", "title": "First mouse",
-			"occurred_at": "2026-07-20T00:00:00Z",
-			"created_at": "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z",
-		}},
-		"cats": {{
-			"id": "cat-99", "name": "Miko", "sex": "male", "status": "alive",
-			"created_at": "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z",
-		}},
+		"cats": {
+			{"id": "kit-1", "name": "Kitten", "sex": "female", "status": "alive",
+				"mother_id": "cat-mom", "created_at": "2026-07-20T00:00:00Z",
+				"updated_at": "2026-07-20T00:00:00Z"},
+			{"id": "cat-mom", "name": "Mom", "sex": "female", "status": "alive",
+				"created_at": "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z"},
+		},
 	}
 	applied, err := s.PushRows(changes)
 	if err != nil {
@@ -486,12 +484,51 @@ func TestPushRowsAppliesChildBeforeParent(t *testing.T) {
 		t.Fatalf("got %d applied, want 2", applied)
 	}
 
-	var count int
-	if err := s.db.QueryRow(`SELECT COUNT(*) FROM moments WHERE id = 'm-1'`).Scan(&count); err != nil {
+	var motherID string
+	if err := s.db.QueryRow(`SELECT mother_id FROM cats WHERE id = 'kit-1'`).Scan(&motherID); err != nil {
 		t.Fatal(err)
 	}
-	if count != 1 {
-		t.Fatalf("moment not stored, count=%d", count)
+	if motherID != "cat-mom" {
+		t.Fatalf("got mother_id %q, want cat-mom", motherID)
+	}
+}
+
+func TestPushRowsOrphanedChildRollsBack(t *testing.T) {
+	s, err := OpenMemory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Moment references a cat that exists nowhere — the push must fail at
+	// commit and roll back the whole batch, including the valid cat row.
+	changes := map[string][]map[string]any{
+		"cats": {{
+			"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
+			"created_at": "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z",
+		}},
+		"moments": {{
+			"id": "m-1", "cat_id": "cat-orphan", "kind": "milestone", "title": "First mouse",
+			"occurred_at": "2026-07-20T00:00:00Z",
+			"created_at":  "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z",
+		}},
+	}
+	if _, err := s.PushRows(changes); err == nil {
+		t.Fatal("expected FK failure at commit for orphaned moment")
+	}
+
+	var cats, moments int
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM cats`).Scan(&cats); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.db.QueryRow(`SELECT COUNT(*) FROM moments`).Scan(&moments); err != nil {
+		t.Fatal(err)
+	}
+	if cats != 0 || moments != 0 {
+		t.Fatalf("push must roll back entirely, got cats=%d moments=%d", cats, moments)
 	}
 }
 
