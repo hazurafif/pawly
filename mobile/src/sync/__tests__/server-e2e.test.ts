@@ -34,6 +34,7 @@ describe('E2E: mobile sync client against the real Pawly Go server', () => {
   let baseUrl: string;
   let dataDir: string;
   let port: number;
+  let serverStderr = '';
 
   beforeAll(async () => {
     if (!existsSync(SERVER_BINARY)) {
@@ -46,8 +47,9 @@ describe('E2E: mobile sync client against the real Pawly Go server', () => {
     dataDir = mkdtempSync(join(tmpdir(), 'pawly-e2e-'));
     baseUrl = `http://127.0.0.1:${port}`;
     server = spawn(SERVER_BINARY, ['-port', String(port), '-data-dir', dataDir], {
-      stdio: 'ignore',
+      stdio: ['ignore', 'ignore', 'pipe'],
     });
+    server.stderr?.on('data', (c) => (serverStderr += String(c)));
     // wait for healthz
     for (let i = 0; i < 50; i++) {
       try {
@@ -58,13 +60,17 @@ describe('E2E: mobile sync client against the real Pawly Go server', () => {
       }
       await new Promise((r) => setTimeout(r, 100));
     }
-    throw new Error('Go server did not become healthy');
+    throw new Error(`Go server did not become healthy.\nstderr:\n${serverStderr}`);
   });
 
   afterAll(() => {
     server?.kill();
-    rmSync(dataDir, { recursive: true, force: true });
-    rmSync(CACHE_DIR, { recursive: true, force: true });
+    if (dataDir) {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+    if (CACHE_DIR) {
+      rmSync(CACHE_DIR, { recursive: true, force: true });
+    }
   });
 
   it('full sync round trip: two devices converge through the real server', async () => {

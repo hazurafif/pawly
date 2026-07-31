@@ -21,7 +21,7 @@ function nodeFetchBase(base: string): typeof fetch {
   return impl as typeof fetch;
 }
 
-function startMockServer() {
+function startMockServer(opts: { pushRejects?: boolean } = {}) {
   const calls: { url: string; method: string }[] = [];
   const server = createServer((req, res) => {
     calls.push({ url: req.url ?? '', method: req.method ?? '' });
@@ -30,7 +30,7 @@ function startMockServer() {
       req.on('data', (c) => (body += c));
       req.on('end', () => {
         res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({ status: 'ok', applied: 1 }));
+        res.end(JSON.stringify(opts.pushRejects ? { status: 'error', error: 'boom' } : { status: 'ok', applied: 1 }));
       });
       return;
     }
@@ -98,6 +98,16 @@ describe('HttpTransport', () => {
       const t = new HttpTransport({ baseUrl: srv.base, fetch: nodeFetchBase(srv.base) });
       await t.push(emptyChanges);
       expect(srv.calls[0].method).toBe('POST');
+    } finally {
+      srv.close();
+    }
+  });
+
+  it('push rejects when the server responds with a non-ok status', async () => {
+    const srv = await startMockServer({ pushRejects: true });
+    try {
+      const t = new HttpTransport({ baseUrl: srv.base, fetch: nodeFetchBase(srv.base) });
+      await expect(t.push(emptyChanges)).rejects.toThrow('push rejected');
     } finally {
       srv.close();
     }
