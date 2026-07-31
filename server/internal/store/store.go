@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -191,4 +192,77 @@ func (s *Store) Migrate() error {
 		}
 	}
 	return nil
+}
+
+// execer is satisfied by both *sql.DB and *sql.Tx.
+type execer interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
+// Upsert inserts row into table, or updates the existing row when the
+// incoming updated_at is newer (last-write-wins). Returns true when the
+// row was applied.
+func (s *Store) Upsert(table string, row map[string]any) (bool, error) {
+	return upsert(s.db, table, row)
+}
+
+func upsert(exec execer, table string, row map[string]any) (bool, error) {
+	cols, ok := columnsByTable[table]
+	if !ok {
+		return false, fmt.Errorf("unknown table %q", table)
+	}
+	id, ok := row["id"].(string)
+	if !ok || id == "" {
+		return false, fmt.Errorf("row in %q missing string id", table)
+	}
+	up, ok := row["updated_at"].(string)
+	if !ok || up == "" {
+		return false, fmt.Errorf("row %q in %q missing string updated_at", id, table)
+	}
+
+	// Only columns present in the row are written; absent columns fall back
+	// to schema defaults (or stay unchanged on update) instead of NULL, so
+	// NOT NULL DEFAULT columns never violate. Explicit NULLs pass through.
+	present := make([]string, 0, len(cols))
+	vals := make([]any, 0, len(cols))
+	for _, c := range cols {
+		v, ok := row[c]
+		if !ok {
+			continue
+		}
+		present = append(present, c)
+		vals = append(vals, v)
+	}
+
+	insertCols := strings.Join(present, ", ")
+	placeholders := strings.Repeat("?,", len(present)-1) + "?"
+
+	set := make([]string, 0, len(present)-1)
+	for _, c := range present {
+		if c == "id" {
+			continue
+		}
+		set = append(set, c+" = ?")
+	}
+	// args bind to all placeholders in statement order: first the VALUES
+	// placeholders, then the SET placeholders (same values, minus id).
+	args := make([]any, 0, len(vals)*2-1)
+	args = append(args, vals...)
+	args = append(args, vals[1:]...)
+
+	query := fmt.Sprintf(
+		`INSERT INTO %s (%s) VALUES (%s)
+		 ON CONFLICT(id) DO UPDATE SET %s
+		 WHERE %s.updated_at < excluded.updated_at`,
+		table, insertCols, placeholders, strings.Join(set, ", "), table,
+	)
+	res, err := exec.Exec(query, args...)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
