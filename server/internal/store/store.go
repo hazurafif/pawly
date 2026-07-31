@@ -283,3 +283,98 @@ func upsert(exec execer, table string, row map[string]any) (bool, error) {
 	}
 	return n > 0, nil
 }
+
+// PullChanges returns, per table, every row with updated_at newer than since.
+func (s *Store) PullChanges(since time.Time) (map[string][]map[string]any, error) {
+	out := make(map[string][]map[string]any, len(TableNames))
+	for _, t := range TableNames {
+		cols := columnsByTable[t]
+		rows, err := s.db.Query(
+			fmt.Sprintf(`SELECT %s FROM %s WHERE updated_at > ? ORDER BY updated_at`,
+				strings.Join(cols, ", "), t),
+			since.UTC().Format(time.RFC3339),
+		)
+		if err != nil {
+			return nil, err
+		}
+		collected, err := scanRows(rows, cols)
+		rows.Close()
+		if err != nil {
+			return nil, err
+		}
+		out[t] = collected
+	}
+	return out, nil
+}
+
+func scanRows(rows *sql.Rows, cols []string) ([]map[string]any, error) {
+	var out []map[string]any
+	for rows.Next() {
+		dest := make([]any, len(cols))
+		ptr := make([]any, len(cols))
+		for i := range dest {
+			ptr[i] = &dest[i]
+		}
+		if err := rows.Scan(ptr...); err != nil {
+			return nil, err
+		}
+		row := make(map[string]any, len(cols))
+		for i, c := range cols {
+			row[c] = dest[i]
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// PushRows upserts all rows in changes, applying tables in pushOrder.
+// Runs in one transaction with foreign keys temporarily disabled so rows
+// may reference rows arriving later in the same batch (e.g. a moment whose
+// cat is in the same push). Returns the number of rows actually applied.
+func (s *Store) PushRows(changes map[string][]map[string]any) (int, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`PRAGMA foreign_keys=OFF;`); err != nil {
+		return 0, err
+	}
+	applied := 0
+	for _, t := range pushOrder {
+		for _, row := range changes[t] {
+			ok, err := upsert(tx, t, row)
+			if err != nil {
+				return applied, fmt.Errorf("push %s: %w", t, err)
+			}
+			if ok {
+				applied++
+			}
+		}
+	}
+	if _, err := tx.Exec(`PRAGMA foreign_keys=ON;`); err != nil {
+		return 0, err
+	}
+	return applied, tx.Commit()
+}
+
+// PhotoMeta returns the content type of a photo row that exists and is not
+// deleted. exists is false when the row is missing or deleted.
+func (s *Store) PhotoMeta(id string) (contentType string, exists bool, err error) {
+	var ct string
+	err = s.db.QueryRow(`SELECT content_type FROM photos WHERE id = ? AND deleted_at IS NULL`, id).Scan(&ct)
+	if err == sql.ErrNoRows {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return ct, true, nil
+}
+
+// SetPhotoContentType updates a photo's stored content type.
+func (s *Store) SetPhotoContentType(id, ct string) error {
+	_, err := s.db.Exec(`UPDATE photos SET content_type = ? WHERE id = ?`, ct, id)
+	return err
+}
