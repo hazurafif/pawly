@@ -3,7 +3,7 @@ import { upsertSql } from './schema';
 
 export interface DirtyRow {
   table: TableName;
-  row: Row;
+  row: Row & { id: string };
 }
 
 export interface ApplyResult {
@@ -70,7 +70,7 @@ export class Repository {
     );
     const out: DirtyRow[] = [];
     for (const d of rows) {
-      const row = await this.db.first<Row>(
+      const row = await this.db.first<Row & { id: string }>(
         `SELECT ${COLUMNS[d.table_name].join(', ')} FROM ${d.table_name} WHERE id = ?`,
         [d.id]
       );

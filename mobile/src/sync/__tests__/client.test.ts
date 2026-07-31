@@ -27,7 +27,7 @@ function fakeTransport(overrides: Partial<SyncTransport> = {}): SyncTransport {
   };
 }
 
-const catRow = (id: string, updatedAt: string, overrides: Row = {}): Row => ({
+const catRow = (id: string, updatedAt: string, overrides: Row = {}): Row & { id: string } => ({
   id, name: 'Miko', sex: 'male', status: 'alive',
   birth_date_is_estimated: 0, rescue_date_is_estimated: 0, is_neutered: 'unknown',
   created_at: '2026-07-01T00:00:00.000Z', updated_at: updatedAt, ...overrides,
@@ -75,7 +75,7 @@ describe('SyncClient', () => {
     const transport = fakeTransport({
       pull: vi.fn(async () => ({
         server_time: '2026-07-05T00:00:00.000Z',
-        changes: { cats: [catRow('c9', '2026-07-09T00:00:00.000Z')] } as Changes,
+        changes: { cats: [catRow('c9', '2026-07-09T00:00:00.000Z')], moments: [], purchases: [], reminders: [], reminder_completions: [], photos: [] } as Changes,
       })),
     });
     const client = new SyncClient(store, transport);
@@ -160,6 +160,38 @@ describe('SyncClient', () => {
 
     const pushArg = (transport.push as ReturnType<typeof vi.fn>).mock.calls[0][0] as Changes;
     expect(Object.keys(pushArg).sort()).toEqual(emptyChangesKeys().sort());
+  });
+
+  it('first sync sets the cursor to server_time (no dirty rows, empty changes)', async () => {
+    const store = fakeStore();
+    const transport = fakeTransport({
+      pull: vi.fn(async () => ({ server_time: '2026-07-05T00:00:00.000Z', changes: emptyChanges })),
+    });
+    const client = new SyncClient(store, transport);
+    await client.sync();
+    expect(store.setCursor).toHaveBeenCalledWith('2026-07-05T00:00:00.000Z');
+  });
+
+  it('reports the number of pulled rows', async () => {
+    const transport = fakeTransport({
+      pull: vi.fn(async () => ({
+        server_time: '2026-07-05T00:00:00.000Z',
+        changes: { cats: [catRow('c1', '2026-07-01T00:00:00.000Z'), catRow('c2', '2026-07-02T00:00:00.000Z')], moments: [], purchases: [], reminders: [], reminder_completions: [], photos: [] } as Changes,
+      })),
+    });
+    const client = new SyncClient(fakeStore(), transport);
+    const result = await client.sync();
+    expect(result.pulled).toBe(2);
+  });
+
+  it('does not advance the cursor when applying pulled changes fails', async () => {
+    const store = fakeStore({
+      applyChanges: vi.fn(async () => { throw new Error('apply failed'); }),
+    });
+    const transport = fakeTransport();
+    const client = new SyncClient(store, transport);
+    await expect(client.sync()).rejects.toThrow('apply failed');
+    expect(store.setCursor).not.toHaveBeenCalled();
   });
 });
 
