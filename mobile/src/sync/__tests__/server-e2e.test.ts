@@ -123,6 +123,11 @@ describe('E2E: mobile sync client against the real Pawly Go server', () => {
     const missingB = await repoB.getMissingPhotos();
     expect(missingB).not.toContain('ph-1');
 
+    // Direct proof the file was actually downloaded, not just "not missing".
+    const cacheFile = join(CACHE_DIR, 'ph-1');
+    expect(existsSync(cacheFile)).toBe(true);
+    expect(readFileSync(cacheFile)).toEqual(Buffer.from('E2EPHOTO'));
+
     // cleanup the temp photo
     rmSync(photoFile, { force: true });
   });
