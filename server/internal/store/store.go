@@ -3,6 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -215,14 +216,27 @@ func upsert(exec execer, table string, row map[string]any) (bool, error) {
 	if !ok || id == "" {
 		return false, fmt.Errorf("row in %q missing string id", table)
 	}
+	// Last-write-wins compares RFC3339 strings lexicographically, so
+	// updated_at must be zero-padded RFC3339 UTC (2006-01-02T15:04:05Z);
+	// the phone must send exactly this format.
 	up, ok := row["updated_at"].(string)
 	if !ok || up == "" {
 		return false, fmt.Errorf("row %q in %q missing string updated_at", id, table)
 	}
 
+	for k := range row {
+		if !slices.Contains(cols, k) {
+			return false, fmt.Errorf("row %q in %q has unknown column %q", id, table, k)
+		}
+	}
+
 	// Only columns present in the row are written; absent columns fall back
-	// to schema defaults (or stay unchanged on update) instead of NULL, so
-	// NOT NULL DEFAULT columns never violate. Explicit NULLs pass through.
+	// to schema defaults on insert and stay unchanged on update. NOT NULL
+	// columns WITHOUT defaults (name, created_at, kind, occurred_at, item,
+	// price, date, title, time, days_of_week, completed_at) are NOT allowed
+	// to be absent: SQLite checks NOT NULL against the excluded row, so
+	// omitting one fails the whole upsert with NOT NULL constraint failed.
+	// Explicit NULLs pass through.
 	present := make([]string, 0, len(cols))
 	vals := make([]any, 0, len(cols))
 	for _, c := range cols {
@@ -248,6 +262,9 @@ func upsert(exec execer, table string, row map[string]any) (bool, error) {
 	// placeholders, then the SET placeholders (same values, minus id).
 	args := make([]any, 0, len(vals)*2-1)
 	args = append(args, vals...)
+	// id is guaranteed to be the first element of every allow-list entry
+	// (and thus of vals), which is why vals[1:] correctly binds the SET
+	// placeholders.
 	args = append(args, vals[1:]...)
 
 	query := fmt.Sprintf(
@@ -258,7 +275,7 @@ func upsert(exec execer, table string, row map[string]any) (bool, error) {
 	)
 	res, err := exec.Exec(query, args...)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("upsert %s %q: %w", table, id, err)
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
