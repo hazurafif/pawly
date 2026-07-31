@@ -308,7 +308,7 @@ func (s *Store) PullChanges(since time.Time) (map[string][]map[string]any, error
 }
 
 func scanRows(rows *sql.Rows, cols []string) ([]map[string]any, error) {
-	var out []map[string]any
+	out := make([]map[string]any, 0)
 	for rows.Next() {
 		dest := make([]any, len(cols))
 		ptr := make([]any, len(cols))
@@ -332,8 +332,13 @@ func scanRows(rows *sql.Rows, cols []string) ([]map[string]any, error) {
 // children, and defer_foreign_keys defers all FK validation until commit,
 // allowing any intra-batch ordering (e.g. a child row listed before its
 // parent in the same batch). Genuinely orphaned rows fail the commit and
-// roll back the entire push.
+// roll back the entire push. Unknown table names are rejected up front.
 func (s *Store) PushRows(changes map[string][]map[string]any) (int, error) {
+	for t := range changes {
+		if !slices.Contains(pushOrder, t) {
+			return 0, fmt.Errorf("push: unknown table %q", t)
+		}
+	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return 0, err

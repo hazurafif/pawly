@@ -565,6 +565,52 @@ func TestPushRowsLastWriteWins(t *testing.T) {
 	}
 }
 
+func TestPullChangesEmptyTablesAreEmptyArrays(t *testing.T) {
+	s, err := OpenMemory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+
+	changes, err := s.PullChanges(mustTime(t, "2026-01-01T00:00:00Z"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tbl := range TableNames {
+		rows, ok := changes[tbl]
+		if !ok || rows == nil {
+			t.Fatalf("table %s: want non-nil empty slice, got %v", tbl, rows)
+		}
+		if len(rows) != 0 {
+			t.Fatalf("table %s: want 0 rows, got %d", tbl, len(rows))
+		}
+	}
+}
+
+func TestPushRowsRejectsUnknownTable(t *testing.T) {
+	s, err := OpenMemory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+
+	applied, err := s.PushRows(map[string][]map[string]any{
+		"nope": {{"id": "x", "updated_at": "2026-01-01T00:00:00Z"}},
+	})
+	if err == nil {
+		t.Fatal("want error for unknown table, got nil")
+	}
+	if applied != 0 {
+		t.Fatalf("want applied 0, got %d", applied)
+	}
+}
+
 func mustTime(t *testing.T, s string) time.Time {
 	t.Helper()
 	ts, err := time.Parse(time.RFC3339, s)
