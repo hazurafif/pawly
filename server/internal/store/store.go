@@ -357,7 +357,10 @@ func (s *Store) PushRows(changes map[string][]map[string]any) (int, error) {
 			}
 		}
 	}
-	return applied, tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("push commit: %w", err)
+	}
+	return applied, nil
 }
 
 // PhotoMeta returns the content type of a photo row that exists and is not
