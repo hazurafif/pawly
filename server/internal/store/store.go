@@ -317,7 +317,7 @@ func (s *Store) PullChanges(since time.Time) (map[string][]map[string]any, error
 		rows, err := s.db.Query(
 			fmt.Sprintf(`SELECT %s FROM %s WHERE updated_at > ? ORDER BY updated_at`,
 				strings.Join(cols, ", "), t),
-			since.UTC().Format(time.RFC3339),
+			since.UTC().Format(TimestampFormat),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("pull %s: %w", t, err)
