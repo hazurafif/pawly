@@ -145,7 +145,7 @@ func TestPushRejectsUnknownTable(t *testing.T) {
 	}
 }
 
-func TestPushRejectsBadSince(t *testing.T) {
+func TestPullRejectsBadSince(t *testing.T) {
 	ts := newTestServer(t)
 	code, _ := getJSON(t, ts.URL+"/sync/pull?since=not-a-time")
 	if code != http.StatusBadRequest {

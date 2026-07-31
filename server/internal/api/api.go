@@ -74,7 +74,12 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Changes map[string][]map[string]any `json:"changes"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	dec := json.NewDecoder(io.LimitReader(r.Body, 64<<20))
+	if err := dec.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
 		writeError(w, http.StatusBadRequest, "invalid JSON body")
 		return
 	}
@@ -101,9 +106,13 @@ func (s *Server) handlePutPhoto(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "photo row not found")
 		return
 	}
-	data, err := io.ReadAll(io.LimitReader(r.Body, maxPhotoBytes))
+	data, err := io.ReadAll(io.LimitReader(r.Body, maxPhotoBytes+1))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "failed to read body")
+		return
+	}
+	if len(data) > maxPhotoBytes {
+		writeError(w, http.StatusRequestEntityTooLarge, "photo too large")
 		return
 	}
 	if len(data) == 0 {
@@ -115,7 +124,10 @@ func (s *Server) handlePutPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if ct := r.Header.Get("Content-Type"); ct != "" {
-		_ = s.store.SetPhotoContentType(id, ct)
+		if err := s.store.SetPhotoContentType(id, ct); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
