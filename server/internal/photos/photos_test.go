@@ -57,8 +57,38 @@ func TestSaveOverwritesAtomically(t *testing.T) {
 
 func TestPathIsWithinDir(t *testing.T) {
 	s := New("/data/photos")
-	got := s.Path("abc-123")
+	got, err := s.Path("abc-123")
+	if err != nil {
+		t.Fatal(err)
+	}
 	if filepath.Dir(got) != "/data/photos" {
 		t.Fatalf("path %q not inside dir", got)
+	}
+}
+
+func TestPathRejectsTraversal(t *testing.T) {
+	s := New("/data/photos")
+	for _, id := range []string{"", ".", "..", "../evil", "a/b", "/abs"} {
+		if _, err := s.Path(id); err == nil {
+			t.Fatalf("expected error for id %q", id)
+		}
+	}
+}
+
+func TestDeleteRemovesFile(t *testing.T) {
+	dir := t.TempDir()
+	s := New(dir)
+
+	if err := s.Save("p-1", []byte("data")); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Delete("p-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Open("p-1"); err == nil {
+		t.Fatal("expected error after delete")
+	}
+	if err := s.Delete("p-1"); err != nil {
+		t.Fatalf("second delete should be a no-op, got %v", err)
 	}
 }
