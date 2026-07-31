@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"pawly/internal/photos"
 	"pawly/internal/store"
@@ -74,6 +75,80 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
+func TestHealthzAfterStoreClosed(t *testing.T) {
+	st, err := store.OpenMemory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+	srv := New(st, photos.New(t.TempDir()))
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	if err := st.Close(); err != nil {
+		t.Fatal(err)
+	}
+	code, _ := getJSON(t, ts.URL+"/healthz")
+	if code != http.StatusInternalServerError {
+		t.Fatalf("got %d, want 500", code)
+	}
+}
+
+func TestPushClampsStaleUpdatedAt(t *testing.T) {
+	ts := newTestServer(t)
+
+	push := `{
+		"changes": {
+			"cats": [{"id":"cat-1","name":"Miko","sex":"male","status":"alive",
+				"created_at":"2026-07-01T00:00:00.000Z","updated_at":"2026-07-01T00:00:00.000Z"}]
+		}
+	}`
+	code, out := postJSON(t, ts.URL+"/sync/push", push)
+	if code != http.StatusOK {
+		t.Fatalf("push got %d: %v", code, out)
+	}
+
+	code, out = getJSON(t, ts.URL+"/sync/pull?since=2026-01-01T00:00:00.000Z")
+	if code != http.StatusOK {
+		t.Fatalf("pull got %d", code)
+	}
+	changes := out["changes"].(map[string]any)
+	cats := changes["cats"].([]any)
+	if len(cats) != 1 {
+		t.Fatalf("want 1 cat, got %v", cats)
+	}
+	cat := cats[0].(map[string]any)
+	up, ok := cat["updated_at"].(string)
+	if !ok {
+		t.Fatalf("missing updated_at: %v", cat)
+	}
+	if up == "2026-07-01T00:00:00.000Z" {
+		t.Fatalf("updated_at %q should have been clamped to server time", up)
+	}
+	parsed, err := time.Parse(time.RFC3339, up)
+	if err != nil {
+		t.Fatalf("bad updated_at %q: %v", up, err)
+	}
+	if time.Since(parsed) > 2*time.Minute {
+		t.Fatalf("updated_at %q not within 2 minutes of now", up)
+	}
+}
+
+func TestPushRejectsBadTimestampFormat(t *testing.T) {
+	ts := newTestServer(t)
+	code, _ := postJSON(t, ts.URL+"/sync/push", `{
+		"changes": {
+			"cats": [{"id":"cat-1","name":"Miko","sex":"male","status":"alive",
+				"created_at":"2026-07-01T00:00:00.000Z","updated_at":"2026-07-01T00:00:00Z"}]
+		}
+	}`)
+	if code != http.StatusBadRequest {
+		t.Fatalf("got %d, want 400", code)
+	}
+}
+
 func TestPullEmpty(t *testing.T) {
 	ts := newTestServer(t)
 	code, out := getJSON(t, ts.URL+"/sync/pull")
@@ -101,9 +176,9 @@ func TestPushThenPullRoundtrip(t *testing.T) {
 	push := `{
 		"changes": {
 			"cats": [{"id":"cat-1","name":"Miko","sex":"male","status":"alive",
-				"created_at":"2026-07-01T00:00:00Z","updated_at":"2026-07-01T00:00:00Z"}],
+				"created_at":"2026-07-01T00:00:00.000Z","updated_at":"2026-07-01T00:00:00.000Z"}],
 			"purchases": [{"id":"p-1","item":"Whiskas 1.2kg","price":65000,"category":"food",
-				"date":"2026-07-28","note":"","created_at":"2026-07-28T00:00:00Z","updated_at":"2026-07-28T00:00:00Z"}]
+				"date":"2026-07-28","note":"","created_at":"2026-07-28T00:00:00.000Z","updated_at":"2026-07-28T00:00:00.000Z"}]
 		}
 	}`
 	code, out := postJSON(t, ts.URL+"/sync/push", push)
@@ -114,7 +189,7 @@ func TestPushThenPullRoundtrip(t *testing.T) {
 		t.Fatalf("unexpected push response: %v", out)
 	}
 
-	code, out = getJSON(t, ts.URL+"/sync/pull?since=2026-01-01T00:00:00Z")
+	code, out = getJSON(t, ts.URL+"/sync/pull?since=2026-01-01T00:00:00.000Z")
 	if code != http.StatusOK {
 		t.Fatalf("pull got %d", code)
 	}
@@ -139,7 +214,7 @@ func TestPushThenPullRoundtrip(t *testing.T) {
 
 func TestPushRejectsUnknownTable(t *testing.T) {
 	ts := newTestServer(t)
-	code, _ := postJSON(t, ts.URL+"/sync/push", `{"changes":{"nope":[{"id":"x","updated_at":"2026-01-01T00:00:00Z"}]}}`)
+	code, _ := postJSON(t, ts.URL+"/sync/push", `{"changes":{"nope":[{"id":"x","updated_at":"2026-01-01T00:00:00.000Z"}]}}`)
 	if code != http.StatusBadRequest {
 		t.Fatalf("got %d, want 400", code)
 	}
@@ -160,10 +235,10 @@ func TestPhotoPutGetRoundtrip(t *testing.T) {
 	push := `{
 		"changes": {
 			"moments": [{"id":"m-1","kind":"milestone","title":"First mouse",
-				"occurred_at":"2026-07-20T00:00:00Z",
-				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}],
-			"photos": [{"id":"ph-1","moment_id":"m-1","taken_at":"2026-07-20T00:00:00Z",
-				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+				"occurred_at":"2026-07-20T00:00:00.000Z",
+				"created_at":"2026-07-20T00:00:00.000Z","updated_at":"2026-07-20T00:00:00.000Z"}],
+			"photos": [{"id":"ph-1","moment_id":"m-1","taken_at":"2026-07-20T00:00:00.000Z",
+				"created_at":"2026-07-20T00:00:00.000Z","updated_at":"2026-07-20T00:00:00.000Z"}]
 		}
 	}`
 	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
@@ -226,8 +301,8 @@ func TestPhotoGetMissingFile(t *testing.T) {
 	ts := newTestServer(t)
 	push := `{
 		"changes": {
-			"photos": [{"id":"ph-2","taken_at":"2026-07-20T00:00:00Z",
-				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+			"photos": [{"id":"ph-2","taken_at":"2026-07-20T00:00:00.000Z",
+				"created_at":"2026-07-20T00:00:00.000Z","updated_at":"2026-07-20T00:00:00.000Z"}]
 		}
 	}`
 	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
@@ -247,8 +322,8 @@ func TestPhotoPutOversizeRejected(t *testing.T) {
 	ts := newTestServer(t)
 	push := `{
 		"changes": {
-			"photos": [{"id":"ph-3","taken_at":"2026-07-20T00:00:00Z",
-				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+			"photos": [{"id":"ph-3","taken_at":"2026-07-20T00:00:00.000Z",
+				"created_at":"2026-07-20T00:00:00.000Z","updated_at":"2026-07-20T00:00:00.000Z"}]
 		}
 	}`
 	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
@@ -284,8 +359,8 @@ func TestPhotoPutEmptyBodyRejected(t *testing.T) {
 	ts := newTestServer(t)
 	push := `{
 		"changes": {
-			"photos": [{"id":"ph-4","taken_at":"2026-07-20T00:00:00Z",
-				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+			"photos": [{"id":"ph-4","taken_at":"2026-07-20T00:00:00.000Z",
+				"created_at":"2026-07-20T00:00:00.000Z","updated_at":"2026-07-20T00:00:00.000Z"}]
 		}
 	}`
 	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
@@ -309,8 +384,8 @@ func TestPhotoDefaultContentType(t *testing.T) {
 	ts := newTestServer(t)
 	push := `{
 		"changes": {
-			"photos": [{"id":"ph-5","taken_at":"2026-07-20T00:00:00Z",
-				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+			"photos": [{"id":"ph-5","taken_at":"2026-07-20T00:00:00.000Z",
+				"created_at":"2026-07-20T00:00:00.000Z","updated_at":"2026-07-20T00:00:00.000Z"}]
 		}
 	}`
 	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {

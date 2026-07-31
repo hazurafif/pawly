@@ -37,12 +37,19 @@ The server auto-starts at login and restarts if it crashes. Logs: `/Users/Shared
 
 ## Backup
 
-Stop worrying — copy two things:
+Three options, easiest first:
 
-- `/Users/Shared/pawly/pawly.db`
-- `/Users/Shared/pawly/photos/`
+1. **Time Machine** (recommended) — the Mac Mini's Time Machine snapshots the whole disk, so `pawly.db`, WAL files, and photos are all covered consistently.
+2. **Copy while the server is stopped** — copy `pawly.db`, `pawly.db-wal`, `pawly.db-shm` (if present) and the `photos/` folder.
+3. **Copy live** — `sqlite3 pawly.db "VACUUM INTO '/tmp/backup.db'"` for a crash-safe DB snapshot, plus the `photos/` folder.
 
-Time Machine on the Mac Mini covers both.
+## Sync contract for client developers
+
+- **Timestamps** are RFC3339 UTC with millisecond precision — `2006-01-02T15:04:05.000Z`, exactly what JS `Date.toISOString()` emits. The server rejects pushes with any other format (e.g. second precision or timezone offsets).
+- **Clock skew:** the server clamps stale `updated_at` values to server time on push, so a clock-behind device's rows never fall behind another device's pull cursor. Your phone's own timestamps are unchanged locally.
+- **Pull's `since`** is exclusive and accepts any RFC3339 value (any precision, with or without offset). Empty means a full re-pull. Use your own last-seen `updated_at` as the next `since`.
+- **On any push error response, keep your local rows and retry later — never discard them.** A 400 means the payload is malformed; a 500 means the server had a problem. Either way, nothing in the failed batch was applied.
+- **Photo rows** sync like any other row via pull (metadata plus `deleted_at` tombstones); the binaries are fetched separately with `GET /photos/{id}` and uploaded with `PUT /photos/{id}`.
 
 ## Tests
 

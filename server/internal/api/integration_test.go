@@ -48,12 +48,12 @@ func TestTwoDevicesConverge(t *testing.T) {
 	phoneAEdits := map[string][]map[string]any{
 		"cats": {{
 			"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
-			"created_at": "2026-07-01T00:00:00Z", "updated_at": "2026-07-01T00:00:00Z",
+			"created_at": "2030-07-01T00:00:00.000Z", "updated_at": "2030-07-01T00:00:00.000Z",
 		}},
 		"moments": {{
 			"id": "m-1", "cat_id": "cat-1", "kind": "milestone", "title": "First mouse",
-			"occurred_at": "2026-07-20T00:00:00Z",
-			"created_at":  "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z",
+			"occurred_at": "2030-07-20T00:00:00.000Z",
+			"created_at":  "2030-07-20T00:00:00.000Z", "updated_at": "2030-07-20T00:00:00.000Z",
 		}},
 	}
 	if _, err := phoneA.PushRows(phoneAEdits); err != nil {
@@ -77,11 +77,11 @@ func TestTwoDevicesConverge(t *testing.T) {
 	phoneBEdits := map[string][]map[string]any{
 		"cats": {{
 			"id": "cat-1", "name": "Miko (Bella)", "sex": "male", "status": "alive",
-			"created_at": "2026-07-01T00:00:00Z", "updated_at": "2026-07-02T00:00:00Z",
+			"created_at": "2030-07-01T00:00:00.000Z", "updated_at": "2030-07-02T00:00:00.000Z",
 		}},
 		"purchases": {{
 			"id": "p-1", "item": "Whiskas", "price": 65000, "category": "food",
-			"date": "2026-07-28", "created_at": "2026-07-28T00:00:00Z", "updated_at": "2026-07-28T00:00:00Z",
+			"date": "2030-07-28", "created_at": "2030-07-28T00:00:00.000Z", "updated_at": "2030-07-28T00:00:00.000Z",
 		}},
 	}
 	if _, err := phoneB.PushRows(phoneBEdits); err != nil {

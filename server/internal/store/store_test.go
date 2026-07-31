@@ -57,8 +57,8 @@ func TestUpsertInsertsNewRow(t *testing.T) {
 		"name":       "Miko",
 		"sex":        "male",
 		"status":     "alive",
-		"created_at": "2026-08-01T00:00:00Z",
-		"updated_at": "2026-08-01T00:00:00Z",
+		"created_at": "2026-08-01T00:00:00.000Z",
+		"updated_at": "2026-08-01T00:00:00.000Z",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -92,17 +92,17 @@ func TestUpsertLastWriteWins(t *testing.T) {
 			"name":       name,
 			"sex":        "male",
 			"status":     "alive",
-			"created_at": "2026-08-01T00:00:00Z",
+			"created_at": "2026-08-01T00:00:00.000Z",
 			"updated_at": updated,
 		}
 	}
 
-	if _, err := s.Upsert("cats", mk("2026-08-01T01:00:00Z", "v1")); err != nil {
+	if _, err := s.Upsert("cats", mk("2026-08-01T01:00:00.000Z", "v1")); err != nil {
 		t.Fatal(err)
 	}
 
 	// Older incoming row must NOT overwrite.
-	applied, err := s.Upsert("cats", mk("2026-08-01T00:30:00Z", "older"))
+	applied, err := s.Upsert("cats", mk("2026-08-01T00:30:00.000Z", "older"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestUpsertLastWriteWins(t *testing.T) {
 	}
 
 	// Newer incoming row must overwrite.
-	applied, err = s.Upsert("cats", mk("2026-08-01T02:00:00Z", "newer"))
+	applied, err = s.Upsert("cats", mk("2026-08-01T02:00:00.000Z", "newer"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,7 +138,7 @@ func TestUpsertRejectsUnknownTable(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := s.Upsert("nope", map[string]any{"id": "x", "updated_at": "2026-08-01T00:00:00Z"}); err == nil {
+	if _, err := s.Upsert("nope", map[string]any{"id": "x", "updated_at": "2026-08-01T00:00:00.000Z"}); err == nil {
 		t.Fatal("expected error for unknown table")
 	}
 }
@@ -153,7 +153,7 @@ func TestUpsertRejectsMissingID(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := s.Upsert("cats", map[string]any{"updated_at": "2026-08-01T00:00:00Z"}); err == nil {
+	if _, err := s.Upsert("cats", map[string]any{"updated_at": "2026-08-01T00:00:00.000Z"}); err == nil {
 		t.Fatal("expected error for missing id")
 	}
 }
@@ -171,8 +171,8 @@ func TestUpsertRejectsUnknownColumn(t *testing.T) {
 	_, err = s.Upsert("cats", map[string]any{
 		"id":         "cat-1",
 		"name":       "Miko",
-		"created_at": "2026-08-01T00:00:00Z",
-		"updated_at": "2026-08-01T00:00:00Z",
+		"created_at": "2026-08-01T00:00:00.000Z",
+		"updated_at": "2026-08-01T00:00:00.000Z",
 		"namee":      "x",
 	})
 	if err == nil {
@@ -193,8 +193,36 @@ func TestUpsertRejectsMissingUpdatedAt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := s.Upsert("cats", map[string]any{"id": "cat-1", "name": "Miko", "created_at": "2026-08-01T00:00:00Z"}); err == nil {
+	if _, err := s.Upsert("cats", map[string]any{"id": "cat-1", "name": "Miko", "created_at": "2026-08-01T00:00:00.000Z"}); err == nil {
 		t.Fatal("expected error for missing updated_at")
+	}
+}
+
+func TestUpsertRejectsBadTimestampFormat(t *testing.T) {
+	s, err := OpenMemory()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if err := s.Migrate(); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, up := range []string{
+		"2026-07-01T00:00:00Z",      // second precision, no milliseconds
+		"2026-07-01T00:00:00+07:00", // timezone offset instead of Z
+		"2026-07-01T00:00:00.12Z",   // wrong fraction width
+	} {
+		_, err := s.Upsert("cats", map[string]any{
+			"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
+			"created_at": "2026-07-01T00:00:00.000Z", "updated_at": up,
+		})
+		if err == nil {
+			t.Fatalf("expected error for updated_at %q", up)
+		}
+		if !strings.Contains(err.Error(), "invalid updated_at") {
+			t.Fatalf("error %q should mention invalid updated_at for %q", err, up)
+		}
 	}
 }
 
@@ -211,8 +239,8 @@ func TestUpsertAppliesSchemaDefaults(t *testing.T) {
 	if _, err := s.Upsert("cats", map[string]any{
 		"id":         "cat-1",
 		"name":       "Miko",
-		"created_at": "2026-08-01T00:00:00Z",
-		"updated_at": "2026-08-01T00:00:00Z",
+		"created_at": "2026-08-01T00:00:00.000Z",
+		"updated_at": "2026-08-01T00:00:00.000Z",
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -242,10 +270,10 @@ func TestUpsertAbsentColumnStaysUnchangedOnUpdate(t *testing.T) {
 			"id": "cat-1", "name": name, "sex": "male", "status": "alive",
 			"birth_date_is_estimated": 0, "rescue_date_is_estimated": 0,
 			"is_neutered": "unknown", "story": story,
-			"created_at": "2026-08-01T00:00:00Z", "updated_at": updated,
+			"created_at": "2026-08-01T00:00:00.000Z", "updated_at": updated,
 		}
 	}
-	if _, err := s.Upsert("cats", full("Miko", "a", "2026-08-01T01:00:00Z")); err != nil {
+	if _, err := s.Upsert("cats", full("Miko", "a", "2026-08-01T01:00:00.000Z")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -254,7 +282,7 @@ func TestUpsertAbsentColumnStaysUnchangedOnUpdate(t *testing.T) {
 		"id": "cat-1", "name": "Miko2", "sex": "male", "status": "alive",
 		"birth_date_is_estimated": 0, "rescue_date_is_estimated": 0,
 		"is_neutered": "unknown",
-		"created_at":  "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T02:00:00Z",
+		"created_at":  "2026-08-01T00:00:00.000Z", "updated_at": "2026-08-01T02:00:00.000Z",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -287,14 +315,14 @@ func TestUpsertExplicitNullPassesThrough(t *testing.T) {
 			"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
 			"birth_date_is_estimated": 0, "rescue_date_is_estimated": 0,
 			"is_neutered": "unknown", "story": story,
-			"created_at": "2026-08-01T00:00:00Z", "updated_at": updated,
+			"created_at": "2026-08-01T00:00:00.000Z", "updated_at": updated,
 		}
 	}
-	if _, err := s.Upsert("cats", full("a", "2026-08-01T01:00:00Z")); err != nil {
+	if _, err := s.Upsert("cats", full("a", "2026-08-01T01:00:00.000Z")); err != nil {
 		t.Fatal(err)
 	}
 
-	applied, err := s.Upsert("cats", full(nil, "2026-08-01T02:00:00Z"))
+	applied, err := s.Upsert("cats", full(nil, "2026-08-01T02:00:00.000Z"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -326,15 +354,15 @@ func TestUpsertTieKeepsExisting(t *testing.T) {
 			"id": "cat-1", "name": name, "sex": "male", "status": "alive",
 			"birth_date_is_estimated": 0, "rescue_date_is_estimated": 0,
 			"is_neutered": "unknown",
-			"created_at":  "2026-08-01T00:00:00Z", "updated_at": updated,
+			"created_at":  "2026-08-01T00:00:00.000Z", "updated_at": updated,
 		}
 	}
-	if _, err := s.Upsert("cats", mk("2026-08-01T01:00:00Z", "v1")); err != nil {
+	if _, err := s.Upsert("cats", mk("2026-08-01T01:00:00.000Z", "v1")); err != nil {
 		t.Fatal(err)
 	}
 
 	// Same updated_at must NOT overwrite (strict < comparison).
-	applied, err := s.Upsert("cats", mk("2026-08-01T01:00:00Z", "v2"))
+	applied, err := s.Upsert("cats", mk("2026-08-01T01:00:00.000Z", "v2"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,7 +393,7 @@ func TestUpsertMissingNotNullColumnFails(t *testing.T) {
 		"id": "cat-1", "sex": "male", "status": "alive",
 		"birth_date_is_estimated": 0, "rescue_date_is_estimated": 0,
 		"is_neutered": "unknown",
-		"created_at":  "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+		"created_at":  "2026-08-01T00:00:00.000Z", "updated_at": "2026-08-01T00:00:00.000Z",
 	})
 	if err == nil {
 		t.Fatal("expected NOT NULL constraint error for missing name")
@@ -387,11 +415,11 @@ func TestPullChangesSince(t *testing.T) {
 
 	old := map[string]any{
 		"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
-		"created_at": "2026-07-01T00:00:00Z", "updated_at": "2026-07-01T00:00:00Z",
+		"created_at": "2026-07-01T00:00:00.000Z", "updated_at": "2026-07-01T00:00:00.000Z",
 	}
 	newer := map[string]any{
 		"id": "cat-2", "name": "Bella", "sex": "female", "status": "alive",
-		"created_at": "2026-07-05T00:00:00Z", "updated_at": "2026-07-05T00:00:00Z",
+		"created_at": "2026-07-05T00:00:00.000Z", "updated_at": "2026-07-05T00:00:00.000Z",
 	}
 	for _, c := range []map[string]any{old, newer} {
 		if _, err := s.Upsert("cats", c); err != nil {
@@ -400,7 +428,7 @@ func TestPullChangesSince(t *testing.T) {
 	}
 
 	// since = 2026-07-02 → only cat-2 comes back, with all columns.
-	changes, err := s.PullChanges(mustTime(t, "2026-07-02T00:00:00Z"))
+	changes, err := s.PullChanges(mustTime(t, "2026-07-02T00:00:00.000Z"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -431,18 +459,18 @@ func TestPullIncludesDeletedRows(t *testing.T) {
 
 	row := map[string]any{
 		"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
-		"created_at": "2026-07-01T00:00:00Z", "updated_at": "2026-07-01T00:00:00Z",
+		"created_at": "2026-07-01T00:00:00.000Z", "updated_at": "2026-07-01T00:00:00.000Z",
 	}
 	if _, err := s.Upsert("cats", row); err != nil {
 		t.Fatal(err)
 	}
-	row["deleted_at"] = "2026-07-10T00:00:00Z"
-	row["updated_at"] = "2026-07-10T00:00:00Z"
+	row["deleted_at"] = "2026-07-10T00:00:00.000Z"
+	row["updated_at"] = "2026-07-10T00:00:00.000Z"
 	if _, err := s.Upsert("cats", row); err != nil {
 		t.Fatal(err)
 	}
 
-	changes, err := s.PullChanges(mustTime(t, "2026-07-02T00:00:00Z"))
+	changes, err := s.PullChanges(mustTime(t, "2026-07-02T00:00:00.000Z"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -450,7 +478,7 @@ func TestPullIncludesDeletedRows(t *testing.T) {
 	if len(rows) != 1 {
 		t.Fatalf("got %d rows, want 1", len(rows))
 	}
-	if rows[0]["deleted_at"] != "2026-07-10T00:00:00Z" {
+	if rows[0]["deleted_at"] != "2026-07-10T00:00:00.000Z" {
 		t.Fatalf("expected deleted_at to be synced, got %v", rows[0]["deleted_at"])
 	}
 }
@@ -470,10 +498,10 @@ func TestPushRowsCatReferencesParentInSameBatch(t *testing.T) {
 	changes := map[string][]map[string]any{
 		"cats": {
 			{"id": "kit-1", "name": "Kitten", "sex": "female", "status": "alive",
-				"mother_id": "cat-mom", "created_at": "2026-07-20T00:00:00Z",
-				"updated_at": "2026-07-20T00:00:00Z"},
+				"mother_id": "cat-mom", "created_at": "2026-07-20T00:00:00.000Z",
+				"updated_at": "2026-07-20T00:00:00.000Z"},
 			{"id": "cat-mom", "name": "Mom", "sex": "female", "status": "alive",
-				"created_at": "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z"},
+				"created_at": "2026-07-20T00:00:00.000Z", "updated_at": "2026-07-20T00:00:00.000Z"},
 		},
 	}
 	applied, err := s.PushRows(changes)
@@ -508,12 +536,12 @@ func TestPushRowsOrphanedChildRollsBack(t *testing.T) {
 	changes := map[string][]map[string]any{
 		"cats": {{
 			"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
-			"created_at": "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z",
+			"created_at": "2026-07-20T00:00:00.000Z", "updated_at": "2026-07-20T00:00:00.000Z",
 		}},
 		"moments": {{
 			"id": "m-1", "cat_id": "cat-orphan", "kind": "milestone", "title": "First mouse",
-			"occurred_at": "2026-07-20T00:00:00Z",
-			"created_at":  "2026-07-20T00:00:00Z", "updated_at": "2026-07-20T00:00:00Z",
+			"occurred_at": "2026-07-20T00:00:00.000Z",
+			"created_at":  "2026-07-20T00:00:00.000Z", "updated_at": "2026-07-20T00:00:00.000Z",
 		}},
 	}
 	if _, err := s.PushRows(changes); err == nil {
@@ -544,14 +572,14 @@ func TestPushRowsLastWriteWins(t *testing.T) {
 
 	first := map[string][]map[string]any{
 		"cats": {{"id": "cat-1", "name": "Miko", "sex": "male", "status": "alive",
-			"created_at": "2026-07-01T00:00:00Z", "updated_at": "2026-07-01T00:00:00Z"}},
+			"created_at": "2026-07-01T00:00:00.000Z", "updated_at": "2026-07-01T00:00:00.000Z"}},
 	}
 	if _, err := s.PushRows(first); err != nil {
 		t.Fatal(err)
 	}
 	older := map[string][]map[string]any{
 		"cats": {{"id": "cat-1", "name": "STALE", "sex": "male", "status": "alive",
-			"created_at": "2026-07-01T00:00:00Z", "updated_at": "2026-06-30T00:00:00Z"}},
+			"created_at": "2026-07-01T00:00:00.000Z", "updated_at": "2026-06-30T00:00:00.000Z"}},
 	}
 	if _, err := s.PushRows(older); err != nil {
 		t.Fatal(err)
@@ -575,7 +603,7 @@ func TestPullChangesEmptyTablesAreEmptyArrays(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	changes, err := s.PullChanges(mustTime(t, "2026-01-01T00:00:00Z"))
+	changes, err := s.PullChanges(mustTime(t, "2026-01-01T00:00:00.000Z"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -601,7 +629,7 @@ func TestPushRowsRejectsUnknownTable(t *testing.T) {
 	}
 
 	applied, err := s.PushRows(map[string][]map[string]any{
-		"nope": {{"id": "x", "updated_at": "2026-01-01T00:00:00Z"}},
+		"nope": {{"id": "x", "updated_at": "2026-01-01T00:00:00.000Z"}},
 	})
 	if err == nil {
 		t.Fatal("want error for unknown table, got nil")

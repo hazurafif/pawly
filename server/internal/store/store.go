@@ -10,6 +10,23 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// TimestampFormat is the canonical timestamp format for all synced rows:
+// RFC3339 UTC with fixed-width millisecond precision. Lexicographic
+// comparison of these strings is chronological, which the last-write-wins
+// sync depends on. The phone client emits this format natively
+// (Date.toISOString()).
+const TimestampFormat = "2006-01-02T15:04:05.000Z"
+
+// ValidationError marks a push failure caused by the client's data (bad
+// shape, constraint violation) rather than a server fault. The API layer
+// maps these to 400; other push errors are server faults → 500.
+type ValidationError struct {
+	Err error
+}
+
+func (e *ValidationError) Error() string { return e.Err.Error() }
+func (e *ValidationError) Unwrap() error { return e.Err }
+
 // TableNames lists every synced table, in dependency order.
 var TableNames = []string{"cats", "moments", "purchases", "reminders", "reminder_completions", "photos"}
 
@@ -163,6 +180,11 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
+// Ping verifies the database is reachable and healthy.
+func (s *Store) Ping() error {
+	return s.db.Ping()
+}
+
 // Migrate applies any pending migrations, tracked in schema_migrations.
 func (s *Store) Migrate() error {
 	if _, err := s.db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)`); err != nil {
@@ -222,6 +244,9 @@ func upsert(exec execer, table string, row map[string]any) (bool, error) {
 	up, ok := row["updated_at"].(string)
 	if !ok || up == "" {
 		return false, fmt.Errorf("row %q in %q missing string updated_at", id, table)
+	}
+	if _, err := time.Parse(TimestampFormat, up); err != nil {
+		return false, fmt.Errorf("row %q in %q has invalid updated_at format %q (want %s)", id, table, up, TimestampFormat)
 	}
 
 	for k := range row {
@@ -336,7 +361,7 @@ func scanRows(rows *sql.Rows, cols []string) ([]map[string]any, error) {
 func (s *Store) PushRows(changes map[string][]map[string]any) (int, error) {
 	for t := range changes {
 		if !slices.Contains(pushOrder, t) {
-			return 0, fmt.Errorf("push: unknown table %q", t)
+			return 0, &ValidationError{Err: fmt.Errorf("push: unknown table %q", t)}
 		}
 	}
 	tx, err := s.db.Begin()
@@ -355,7 +380,7 @@ func (s *Store) PushRows(changes map[string][]map[string]any) (int, error) {
 		for _, row := range changes[t] {
 			ok, err := upsert(tx, t, row)
 			if err != nil {
-				return 0, fmt.Errorf("push %s: %w", t, err)
+				return 0, &ValidationError{Err: fmt.Errorf("push %s: %w", t, err)}
 			}
 			if ok {
 				applied++

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -46,6 +47,11 @@ func writeError(w http.ResponseWriter, code int, msg string) {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if err := s.store.Ping(); err != nil {
+		log.Printf("healthz: %v", err)
+		writeError(w, http.StatusInternalServerError, "db unavailable")
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
@@ -61,7 +67,8 @@ func (s *Server) handlePull(w http.ResponseWriter, r *http.Request) {
 	}
 	changes, err := s.store.PullChanges(since)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("pull internal error: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -87,9 +94,35 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "missing changes")
 		return
 	}
+	// Clamp stale client timestamps so rows pushed by a clock-behind device
+	// never fall behind another device's pull cursor (which would strand
+	// them forever). This is the server's only time normalization; the
+	// phone's own timestamps are unchanged locally.
+	now := time.Now().UTC()
+	for _, rows := range req.Changes {
+		for _, row := range rows {
+			up, ok := row["updated_at"].(string)
+			if !ok {
+				continue
+			}
+			t, err := time.Parse(store.TimestampFormat, up)
+			if err != nil {
+				continue // PushRows will reject with a clear error
+			}
+			if t.Before(now) {
+				row["updated_at"] = now.Format(store.TimestampFormat)
+			}
+		}
+	}
 	applied, err := s.store.PushRows(req.Changes)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		var ve *store.ValidationError
+		if errors.As(err, &ve) {
+			writeError(w, http.StatusBadRequest, err.Error())
+		} else {
+			log.Printf("push internal error: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
+		}
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "applied": applied})
@@ -99,7 +132,8 @@ func (s *Server) handlePutPhoto(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	_, exists, err := s.store.PhotoMeta(id)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("put photo internal error: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	if !exists {
@@ -120,12 +154,14 @@ func (s *Server) handlePutPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := s.photos.Save(id, data); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("put photo internal error: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	if ct := r.Header.Get("Content-Type"); ct != "" {
 		if err := s.store.SetPhotoContentType(id, ct); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			log.Printf("put photo internal error: %v", err)
+			writeError(w, http.StatusInternalServerError, "internal server error")
 			return
 		}
 	}
@@ -136,7 +172,8 @@ func (s *Server) handleGetPhoto(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	ct, exists, err := s.store.PhotoMeta(id)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("get photo internal error: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	if !exists {
@@ -149,7 +186,8 @@ func (s *Server) handleGetPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		log.Printf("get photo internal error: %v", err)
+		writeError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 	w.Header().Set("Content-Type", ct)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"pawly/internal/api"
 	"pawly/internal/photos"
@@ -38,8 +39,38 @@ func main() {
 	srv := api.New(st, photos.New(filepath.Join(*dataDir, "photos")))
 
 	addr := ":" + *port
+	handler := logRequests(srv.Handler())
+
+	srvHTTP := &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 	log.Printf("pawly listening on %s (data dir %s)", addr, *dataDir)
-	if err := http.ListenAndServe(addr, srv.Handler()); err != nil {
+	if err := srvHTTP.ListenAndServe(); err != nil {
 		log.Fatalf("listen: %v", err)
 	}
+}
+
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *statusWriter) WriteHeader(code int) {
+	w.status = code
+	w.ResponseWriter.WriteHeader(code)
+}
+
+// logRequests logs one line per request: method, path, status, duration.
+func logRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(sw, r)
+		log.Printf("%s %s %d %s", r.Method, r.URL.Path, sw.status, time.Since(start))
+	})
 }
