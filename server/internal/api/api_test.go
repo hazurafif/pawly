@@ -152,3 +152,191 @@ func TestPullRejectsBadSince(t *testing.T) {
 		t.Fatalf("got %d, want 400", code)
 	}
 }
+
+func TestPhotoPutGetRoundtrip(t *testing.T) {
+	ts := newTestServer(t)
+
+	// Register the photo row first (as the phone would after pushing it).
+	push := `{
+		"changes": {
+			"moments": [{"id":"m-1","kind":"milestone","title":"First mouse",
+				"occurred_at":"2026-07-20T00:00:00Z",
+				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}],
+			"photos": [{"id":"ph-1","moment_id":"m-1","taken_at":"2026-07-20T00:00:00Z",
+				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+		}
+	}`
+	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
+		t.Fatalf("push got %d", code)
+	}
+
+	// Upload the binary.
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/photos/ph-1", strings.NewReader("JPEGBYTES"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "image/jpeg")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("put got %d, want 204", res.StatusCode)
+	}
+
+	// Download it back.
+	res, err = http.Get(ts.URL + "/photos/ph-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("get got %d, want 200", res.StatusCode)
+	}
+	if string(body) != "JPEGBYTES" {
+		t.Fatalf("got %q, want JPEGBYTES", body)
+	}
+	if ct := res.Header.Get("Content-Type"); ct != "image/jpeg" {
+		t.Fatalf("content type %q, want image/jpeg", ct)
+	}
+}
+
+func TestPhotoPutUnknownID(t *testing.T) {
+	ts := newTestServer(t)
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/photos/ghost", strings.NewReader("x"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("got %d, want 404", res.StatusCode)
+	}
+}
+
+func TestPhotoGetMissingFile(t *testing.T) {
+	ts := newTestServer(t)
+	push := `{
+		"changes": {
+			"photos": [{"id":"ph-2","taken_at":"2026-07-20T00:00:00Z",
+				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+		}
+	}`
+	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
+		t.Fatalf("push got %d", code)
+	}
+	res, err := http.Get(ts.URL + "/photos/ph-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("got %d, want 404", res.StatusCode)
+	}
+}
+
+func TestPhotoPutOversizeRejected(t *testing.T) {
+	ts := newTestServer(t)
+	push := `{
+		"changes": {
+			"photos": [{"id":"ph-3","taken_at":"2026-07-20T00:00:00Z",
+				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+		}
+	}`
+	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
+		t.Fatalf("push got %d", code)
+	}
+
+	big := strings.Repeat("A", maxPhotoBytes+1)
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/photos/ph-3", strings.NewReader(big))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("got %d, want 413", res.StatusCode)
+	}
+
+	// The photo must NOT have been saved.
+	res, err = http.Get(ts.URL + "/photos/ph-3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("after rejection, get got %d, want 404", res.StatusCode)
+	}
+}
+
+func TestPhotoPutEmptyBodyRejected(t *testing.T) {
+	ts := newTestServer(t)
+	push := `{
+		"changes": {
+			"photos": [{"id":"ph-4","taken_at":"2026-07-20T00:00:00Z",
+				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+		}
+	}`
+	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
+		t.Fatalf("push got %d", code)
+	}
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/photos/ph-4", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("got %d, want 400", res.StatusCode)
+	}
+}
+
+func TestPhotoDefaultContentType(t *testing.T) {
+	ts := newTestServer(t)
+	push := `{
+		"changes": {
+			"photos": [{"id":"ph-5","taken_at":"2026-07-20T00:00:00Z",
+				"created_at":"2026-07-20T00:00:00Z","updated_at":"2026-07-20T00:00:00Z"}]
+		}
+	}`
+	if code, _ := postJSON(t, ts.URL+"/sync/push", push); code != http.StatusOK {
+		t.Fatalf("push got %d", code)
+	}
+
+	// No Content-Type header on PUT → stored default must be served back.
+	req, err := http.NewRequest(http.MethodPut, ts.URL+"/photos/ph-5", strings.NewReader("DATA"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("put got %d, want 204", res.StatusCode)
+	}
+
+	res, err = http.Get(ts.URL + "/photos/ph-5")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if ct := res.Header.Get("Content-Type"); ct != "image/jpeg" {
+		t.Fatalf("content type %q, want default image/jpeg", ct)
+	}
+}
