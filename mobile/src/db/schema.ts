@@ -112,9 +112,16 @@ export async function migrate(db: Db): Promise<void> {
     );
   }
   for (let i = version; i < MIGRATIONS.length; i++) {
-    await db.exec(MIGRATIONS[i]);
-    version = i + 1;
-    await db.exec(`PRAGMA user_version = ${version}`);
+    await db.exec('BEGIN');
+    try {
+      await db.exec(MIGRATIONS[i]);
+      version = i + 1;
+      await db.exec(`PRAGMA user_version = ${version}`);
+      await db.exec('COMMIT');
+    } catch (e) {
+      await db.exec('ROLLBACK');
+      throw e;
+    }
   }
 }
 

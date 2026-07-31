@@ -32,7 +32,7 @@ export class SyncClient {
       changes[d.table].push(d.row);
     }
     await this.transport.push(changes); // throws → caller keeps dirty rows
-    await this.store.clearDirty(dirty.map((d) => ({ table: d.table, id: d.row.id })));
+    await this.store.clearDirty(dirty.map((d) => ({ table: d.table, id: d.row.id, updatedAt: d.row.updated_at as string })));
     return dirty.length;
   }
 

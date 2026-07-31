@@ -1,12 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import * as Network from 'expo-network';
-import * as FileSystem from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
-import { expoDb } from '../db/expoAdapter';
-import { migrate } from '../db/schema';
-import { Repository } from '../db/repository';
+import { getRepository } from '../db/db';
+import type { Repository } from '../db/repository';
 import { HttpTransport } from '../sync/transport';
 import { SyncClient } from '../sync/client';
 import { getServerUrl } from '../settings/settings';
@@ -31,16 +30,17 @@ async function buildClient(): Promise<{ client: SyncClient; repo: Repository } |
   if (!baseUrl) {
     return null;
   }
-  const db = (await import('expo-sqlite')).openDatabaseAsync('pawly.db');
-  const adapter = expoDb(await db);
-  await migrate(adapter);
-  const repo = new Repository(adapter);
+  const repo = await getRepository();
   const transport = new HttpTransport({
     baseUrl,
     fetch: (await import('expo/fetch')).fetch,
-    fileToBlob: async (uri: string) => new FileSystem.File(uri),
+    fileToBlob: async (uri: string) => new File(uri),
     saveBytes: async (uri: string, data: Uint8Array) => {
-      const file = new FileSystem.File(uri);
+      // uri is a logical key like file:///cache/photos/<id>; only the last
+      // segment (the photo id) is meaningful — write under the app cache.
+      const dir = new Directory(Paths.cache, 'photos');
+      dir.create({ intermediates: true, idempotent: true });
+      const file = new File(Paths.cache, 'photos', uri.split('/').pop() ?? 'photo');
       await file.write(new Uint8Array(data));
     },
   });
@@ -70,7 +70,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const now = new Date().toISOString();
       lastSyncRef.current = now;
       setStatus({ state: 'idle', lastSync: now, error: null });
-    } catch {
+    } catch (e) {
+      console.warn('sync failed', e);
       setStatus({ state: 'error', lastSync: lastSyncRef.current, error: 'sync failed' });
     } finally {
       syncingRef.current = false;

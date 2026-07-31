@@ -30,7 +30,7 @@ export const COLUMNS: Record<TableName, readonly string[]> = {
 };
 
 // Minimal DB facade. Implemented by expoAdapter (app) and the sql.js
-// adapter in schema.ts (tests).
+// adapter in testDb.ts (tests).
 export interface Db {
   exec(sql: string): Promise<void>;
   run(sql: string, params?: unknown[]): Promise<{ changes: number }>;

@@ -81,9 +81,16 @@ export class Repository {
     return out;
   }
 
-  async clearDirty(ids: { table: TableName; id: string }[]): Promise<void> {
+  // Deletes dirty rows only when the row's CURRENT updated_at still matches
+  // the one that was pushed: an edit made mid-sync bumps updated_at, so the
+  // dirty row survives and the newer state is pushed on the next pass.
+  async clearDirty(ids: { table: TableName; id: string; updatedAt: string }[]): Promise<void> {
     for (const d of ids) {
-      await this.db.run('DELETE FROM dirty WHERE table_name = ? AND id = ?', [d.table, d.id]);
+      await this.db.run(
+        `DELETE FROM dirty WHERE table_name = ? AND id = ?
+         AND (SELECT updated_at FROM ${d.table} WHERE id = ?) = ?`,
+        [d.table, d.id, d.id, d.updatedAt]
+      );
     }
   }
 

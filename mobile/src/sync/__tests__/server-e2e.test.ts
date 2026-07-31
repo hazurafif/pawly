@@ -22,8 +22,9 @@ const e2eDeps = (baseUrl: string) => ({
   fetch: fetch as typeof fetch,
   fileToBlob: async (uri: string) => new Blob([readFileSync(uri.replace('file://', ''))], { type: 'image/jpeg' }),
   saveBytes: async (uri: string, data: Uint8Array) => {
-    // HttpTransport.getPhoto writes to file:///cache/photos/<id>; map that
-    // to a writable temp dir in the Node test environment.
+    // HttpTransport.getPhoto passes a logical key (file:///cache/photos/<id>);
+    // the app writes the id under Paths.cache/photos/. Map it to a writable
+    // temp dir in the Node test environment (same path shape).
     const path = uri.replace('file:///cache/photos', CACHE_DIR);
     writeFileSync(path, data);
   },

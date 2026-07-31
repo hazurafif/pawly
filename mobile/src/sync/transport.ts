@@ -5,7 +5,8 @@ export interface TransportDeps {
   baseUrl: string;
   fetch: typeof fetch;
   timeoutMs?: number;
-  // In the app: expo-file-system's File(path).blob(); in tests: node Blob.
+  // In the app: expo-file-system's File IS a Blob in SDK 57 (no .blob()
+  // method); in tests: node Blob.
   fileToBlob?: (uri: string) => Promise<Blob>;
   // In the app: new File(uri).write(data); in tests: node fs write.
   saveBytes?: (uri: string, data: Uint8Array) => Promise<void>;
@@ -33,12 +34,17 @@ export class HttpTransport {
   }
 
   // A hung server must fail a sync pass, never stall it (the engine's
-  // status depends on this). Combines the timeout with any caller signal.
+  // status depends on this). RN's AbortSignal polyfill (abort-controller v3)
+  // lacks the static helpers (AbortSignal.timeout / AbortSignal.any), so the
+  // timeout is driven by a manual AbortController instead.
   private async fetchWithTimeout(url: string | URL, init?: RequestInit): Promise<Response> {
-    const { signal } = init ?? {};
-    const timeout = AbortSignal.timeout(this.deps.timeoutMs);
-    const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
-    return this.deps.fetch(url, { ...init, signal: combined });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.deps.timeoutMs);
+    try {
+      return await this.deps.fetch(url, { ...init, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async check(res: Response, what: string): Promise<Response> {
@@ -89,6 +95,8 @@ export class HttpTransport {
       'photo download'
     );
     const bytes = new Uint8Array(await res.arrayBuffer());
+    // The URI is a logical key (file:///cache/photos/<id>), not a real path:
+    // the app's saveBytes maps the last segment under Paths.cache/photos/.
     const uri = `file:///cache/photos/${id}`;
     await this.deps.saveBytes(uri, bytes);
     return uri;

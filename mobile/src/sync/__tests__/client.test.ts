@@ -50,7 +50,9 @@ describe('SyncClient', () => {
     expect(transport.push).toHaveBeenCalledWith(
       expect.objectContaining({ cats: [expect.objectContaining({ id: 'c1' })] })
     );
-    expect(store.clearDirty).toHaveBeenCalledWith([{ table: 'cats', id: 'c1' }]);
+    expect(store.clearDirty).toHaveBeenCalledWith([
+      { table: 'cats', id: 'c1', updatedAt: '2026-07-01T00:00:00.000Z' },
+    ]);
     expect(transport.pull).toHaveBeenCalledWith(null);
     expect(result.pushed).toBe(1);
   });

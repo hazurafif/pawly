@@ -44,7 +44,23 @@ describe('Repository', () => {
   it('clearDirty removes pushed rows', async () => {
     const r = await makeRepo();
     await r.upsertLocal('cats', catRow('c1', '2026-07-01T00:00:00.000Z'));
-    await r.clearDirty([{ table: 'cats', id: 'c1' }]);
+    await r.clearDirty([{ table: 'cats', id: 'c1', updatedAt: '2026-07-01T00:00:00.000Z' }]);
+    expect(await r.getDirtyRows()).toEqual([]);
+  });
+
+  it('clearDirty keeps the row when it was edited after being pushed (updated_at changed)', async () => {
+    const r = await makeRepo();
+    await r.upsertLocal('cats', catRow('c1', '2026-07-01T00:00:00.000Z', { name: 'v1' }));
+    // "push" happened with updated_at 07-01; user edits during push → 07-02
+    await r.upsertLocal('cats', catRow('c1', '2026-07-02T00:00:00.000Z', { name: 'v2' }));
+    await r.clearDirty([{ table: 'cats', id: 'c1', updatedAt: '2026-07-01T00:00:00.000Z' }]);
+    expect(await r.getDirtyRows()).toHaveLength(1);
+  });
+
+  it('clearDirty removes the row when updated_at is unchanged', async () => {
+    const r = await makeRepo();
+    await r.upsertLocal('cats', catRow('c1', '2026-07-01T00:00:00.000Z'));
+    await r.clearDirty([{ table: 'cats', id: 'c1', updatedAt: '2026-07-01T00:00:00.000Z' }]);
     expect(await r.getDirtyRows()).toEqual([]);
   });
 

@@ -170,4 +170,25 @@ describe('HttpTransport', () => {
       srv.close();
     }
   });
+
+  it('aborts requests after the timeout', async () => {
+    let aborted = false;
+    const never = new Promise<Response>((resolve) => {
+      const check = setInterval(() => {
+        if (aborted) {
+          clearInterval(check);
+          resolve(new Response(null, { status: 200 }));
+        }
+      }, 5);
+    });
+    const fetchStub = async (_input: any, init?: any) => {
+      init.signal.addEventListener('abort', () => {
+        aborted = true;
+      });
+      return never;
+    };
+    const t = new HttpTransport({ baseUrl: 'http://x', fetch: fetchStub as typeof fetch, timeoutMs: 30 });
+    await expect(t.pull(null)).rejects.toThrow();
+    expect(aborted).toBe(true);
+  });
 });
