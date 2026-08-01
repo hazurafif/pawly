@@ -19,6 +19,9 @@
     "saved": "Saved"
   },
   "home": {
-    "title": "Home"
+    "title": "Home",
+    "tagline": "Everything about your furry friends, in one place",
+    "pets": "Pets",
+    "petsEmpty": "No pets yet. This feature is coming soon!"
   }
 }

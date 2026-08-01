@@ -19,6 +19,9 @@
     "saved": "Tersimpan"
   },
   "home": {
-    "title": "Beranda"
+    "title": "Beranda",
+    "tagline": "Semua tentang si manis, dalam satu genggaman",
+    "pets": "Hewan peliharaan",
+    "petsEmpty": "Belum ada hewan peliharaan. Fitur ini segera hadir!"
   }
 }
