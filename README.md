@@ -180,11 +180,23 @@ lives in `backend/data/pawly.db` + `backend/data/photos/` (gitignored). See
 cd backend && go build -o pawly ./cmd && ./pawly
 
 # app
-cd app && pnpm install && pnpm web        # web prototype at phone size
-pnpm ios / pnpm android                   # native (Expo Go / simulator)
+cd app && cp .env.example .env  # optional: pin the server URL (see below)
+pnpm install && pnpm web        # web prototype at phone size
+pnpm ios / pnpm android         # native (Expo Go / simulator)
 ```
 
 In the app, Settings → Server address → `192.168.1.50:8080` (your Mac's LAN IP).
+
+**Server auto-detection** (`app/.env`, all `EXPO_PUBLIC_*` are inlined into the
+app bundle):
+
+- `EXPO_PUBLIC_PAWLY_URL=http://192.168.1.50:8080` — pin the backend. When set
+  it is authoritative: health-checked via `/healthz` and used as-is, no LAN scan.
+- `EXPO_PUBLIC_PAWLY_AUTO_DETECT=true` — with no URL configured anywhere, the
+  app probes the local network for a Pawly server (`GET /healthz` on each host,
+  port `EXPO_PUBLIC_PAWLY_PORT`, default `8080`) and remembers the winner.
+- `EXPO_PUBLIC_PAWLY_PORT=8080` — port probed during auto-detection; matches
+  the server's `PAWLY_PORT`.
 
 ## Verify
 

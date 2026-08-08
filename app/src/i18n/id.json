@@ -183,6 +183,7 @@
     "title": "Pengaturan",
     "serverUrl": "Alamat server",
     "serverUrlHint": "Contoh: 192.168.1.50:8080",
+    "autoDetect": "Mencari server Pawly di jaringan Anda…",
     "language": "Bahasa",
     "sync": "Sinkronkan sekarang",
     "syncStatus": "Status sinkron",

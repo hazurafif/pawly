@@ -9,6 +9,7 @@ import type { Repository } from '../db/repository';
 import { HttpTransport } from '../sync/transport';
 import { SyncClient } from '../sync/client';
 import { getServerUrl } from '../settings/settings';
+import { discoverServerUrl } from '../lib/server';
 
 export type SyncStatus =
   | { state: 'idle'; lastSync: string | null; error: string | null }
@@ -26,7 +27,11 @@ const SyncContext = createContext<SyncContextValue>({
 });
 
 async function buildClient(): Promise<{ client: SyncClient; repo: Repository } | null> {
-  const baseUrl = await getServerUrl();
+  let baseUrl = await getServerUrl();
+  if (!baseUrl) {
+    // No stored URL and none in .env — find the server on the LAN.
+    baseUrl = await discoverServerUrl();
+  }
   if (!baseUrl) {
     return null;
   }

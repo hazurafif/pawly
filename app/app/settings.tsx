@@ -16,7 +16,8 @@ import { Directory, File, Paths } from 'expo-file-system';
 import { useSync } from '../src/hooks/useSync';
 import { useActivePet } from '../src/hooks/useActivePet';
 import { getRepository } from '../src/db/db';
-import { getLanguage, getServerUrl, setLanguage, setServerUrl } from '../src/settings/settings';
+import { autoDetectEnabled, getLanguage, getServerUrl, setLanguage, setServerUrl } from '../src/settings/settings';
+import { discoverServerUrl } from '../src/lib/server';
 import { setAppLanguage } from '../src/i18n';
 import { Button, Card, EmptyState, SectionHeader } from '../src/components/ui';
 import { colors, radius, spacing } from '../src/lib/theme';
@@ -29,11 +30,28 @@ export default function SettingsScreen() {
 
   const [serverUrl, setServerUrlText] = useState('');
   const [serverError, setServerError] = useState<string | null>(null);
+  const [autoDetecting, setAutoDetecting] = useState(false);
 
   useEffect(() => {
     void getServerUrl().then((v) => setServerUrlText(v ?? ''));
     void getLanguage().then((l) => setAppLanguage(l));
-  }, []);
+    // No server configured anywhere — look for one on the LAN and adopt it.
+    void (async () => {
+      if (await getServerUrl()) {
+        return;
+      }
+      if (!autoDetectEnabled()) {
+        return;
+      }
+      setAutoDetecting(true);
+      const found = await discoverServerUrl();
+      setAutoDetecting(false);
+      if (found) {
+        setServerUrlText(found);
+        await syncNow();
+      }
+    })();
+  }, [syncNow]);
 
   const saveServer = async () => {
     setServerError(null);
@@ -155,6 +173,7 @@ export default function SettingsScreen() {
           keyboardType="url"
           accessibilityLabel={t('settings.serverUrl')}
         />
+        {autoDetecting ? <Text style={styles.hint}>{t('settings.autoDetect')}</Text> : null}
         {serverError ? <Text style={styles.error}>{serverError}</Text> : null}
         <Button label={t('settings.sync')} onPress={() => void saveServer()} icon="refresh" />
       </Card>
