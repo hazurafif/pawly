@@ -3,22 +3,22 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ActivePetProvider } from '../../src/hooks/useActivePet';
-import { colors } from '../../src/lib/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, radius, shadow, spacing } from '../../src/lib/theme';
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   return (
-    <ActivePetProvider>
-      <Tabs
+    <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerShadowVisible: false,
         headerTitleStyle: { fontWeight: '700', color: colors.text },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { bottom: Math.max(16, insets.bottom + 8) }],
         tabBarLabelStyle: { fontWeight: '600' },
         headerRight: () => (
           <Link href="/settings" asChild>
@@ -72,17 +72,24 @@ export default function TabLayout() {
         }}
       />
       </Tabs>
-    </ActivePetProvider>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: colors.surface,
-    borderTopColor: colors.border,
+    position: 'absolute',
+    left: spacing.md,
+    right: spacing.md,
     height: 64,
+    backgroundColor: colors.glass,
+    borderTopWidth: 0,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    borderRadius: radius.md,
     paddingBottom: 8,
     paddingTop: 6,
+    ...shadow.md,
+    elevation: 8,
   },
   settingsButton: { marginRight: 16 },
   settingsButtonPressed: { opacity: 0.6 },

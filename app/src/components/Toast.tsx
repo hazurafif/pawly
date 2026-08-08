@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing.lg,
     right: spacing.lg,
-    bottom: 96,
+    bottom: spacing.xxl * 2 + spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useActivePet } from '../src/hooks/useActivePet';
 import { useRepoData } from '../src/hooks/useRepoData';
 import { getRepository } from '../src/db/db';
+import { goBack } from '../src/lib/navigation';
 import { newId } from '../src/lib/id';
 import { RULE_KINDS, ruleKindMeta } from '../src/lib/catalog';
 import { Button, Card } from '../src/components/ui';
@@ -96,7 +97,7 @@ export default function ReminderFormScreen() {
         };
         await repo.upsertLocal('reminder_rules', row);
       }
-      router.back();
+      goBack(router);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'save failed');
     } finally {
@@ -113,7 +114,7 @@ export default function ReminderFormScreen() {
         onPress: () =>
           void getRepository()
             .then((repo) => repo.softDelete('reminder_rules', ruleId!))
-            .then(() => router.back()),
+            .then(() => goBack(router)),
       },
     ]);
   };
@@ -219,9 +220,9 @@ const styles = StyleSheet.create({
     minHeight: 40,
     justifyContent: 'center',
   },
-  chipActive: { backgroundColor: colors.primary },
+  chipActive: { backgroundColor: colors.primaryDeep },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   chipTextActive: { color: colors.white },
-  error: { color: colors.error, fontSize: 14, marginVertical: spacing.sm },
+  error: { color: colors.errorDeep, fontSize: 14, marginVertical: spacing.sm },
   pressed: { opacity: 0.7 },
 });

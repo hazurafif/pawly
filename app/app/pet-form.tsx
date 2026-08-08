@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { useRepoData } from '../src/hooks/useRepoData';
 import { getRepository } from '../src/db/db';
+import { goBack } from '../src/lib/navigation';
 import { logPhoto } from '../src/lib/entries';
 import { newId } from '../src/lib/id';
 import { Button, Card } from '../src/components/ui';
@@ -114,7 +115,7 @@ export default function PetFormScreen() {
       if (photoUri && !editing) {
         await logPhoto(repo, row.id, { uri: photoUri });
       }
-      router.back();
+      goBack(router);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'save failed');
     } finally {
@@ -131,7 +132,7 @@ export default function PetFormScreen() {
         onPress: () =>
           void getRepository()
             .then((repo) => repo.deletePetCascade(petId!))
-            .then(() => router.back()),
+            .then(() => goBack(router)),
       },
     ]);
   };
@@ -283,9 +284,9 @@ const styles = StyleSheet.create({
     minHeight: 40,
     justifyContent: 'center',
   },
-  chipActive: { backgroundColor: colors.primary },
+  chipActive: { backgroundColor: colors.primaryDeep },
   chipText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
   chipTextActive: { color: colors.white },
-  error: { color: colors.error, fontSize: 14, marginVertical: spacing.sm },
+  error: { color: colors.errorDeep, fontSize: 14, marginVertical: spacing.sm },
   pressed: { opacity: 0.7 },
 });

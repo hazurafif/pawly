@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
   chipText: { fontSize: 14, fontWeight: '700', color: colors.text, maxWidth: 120 },
-  chipTextActive: { color: colors.primaryDark },
+  chipTextActive: { color: colors.primaryDeep },
   avatarFallback: {
     backgroundColor: colors.primarySoft,
     alignItems: 'center',

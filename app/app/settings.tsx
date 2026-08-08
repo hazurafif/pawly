@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     minHeight: 46,
     marginBottom: spacing.sm,
   },
-  error: { color: colors.error, fontSize: 13, marginBottom: spacing.sm },
+  error: { color: colors.errorDeep, fontSize: 13, marginBottom: spacing.sm },
   langRow: { flexDirection: 'row', gap: spacing.sm },
   langButton: {
     paddingVertical: 10,

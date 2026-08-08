@@ -234,6 +234,6 @@ const styles = StyleSheet.create({
   thumb: { width: 44, height: 44, borderRadius: radius.sm + 2 },
   heart: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { marginTop: spacing.lg },
-  error: { color: colors.error, marginVertical: spacing.sm },
+  error: { color: colors.errorDeep, marginVertical: spacing.sm },
   pressed: { opacity: 0.7 },
 });

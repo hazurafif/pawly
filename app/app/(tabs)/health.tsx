@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginTop: spacing.md,
   },
-  alertText: { flex: 1, fontSize: 13, color: colors.error, fontWeight: '600' },
+  alertText: { flex: 1, fontSize: 13, color: colors.errorDeep, fontWeight: '600' },
   rowCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   rowIcon: { width: 40, height: 40, borderRadius: radius.sm + 2, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' },
   rowInfo: { flex: 1 },

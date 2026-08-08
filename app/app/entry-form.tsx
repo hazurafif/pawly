@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { useActivePet } from '../src/hooks/useActivePet';
 import { getRepository } from '../src/db/db';
+import { goBack } from '../src/lib/navigation';
 import { logEvent, logPhoto } from '../src/lib/entries';
 import { LOGGABLE_KINDS, kindMeta } from '../src/lib/catalog';
 import { Button, Card } from '../src/components/ui';
@@ -157,7 +158,7 @@ export default function EntryFormScreen() {
         }
         void event;
       }
-      router.back();
+      goBack(router);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'save failed');
     } finally {
@@ -174,7 +175,7 @@ export default function EntryFormScreen() {
         onPress: () =>
           void getRepository()
             .then((repo) => repo.softDelete('events', editingId!))
-            .then(() => router.back()),
+            .then(() => goBack(router)),
       },
     ]);
   };
@@ -335,7 +336,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     backgroundColor: colors.surfaceMuted,
   },
-  kindItemActive: { backgroundColor: colors.primary },
+  kindItemActive: { backgroundColor: colors.primaryDeep },
   kindLabel: { fontSize: 13, fontWeight: '600', color: colors.text },
   kindLabelActive: { color: colors.white },
   input: {
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
     justifyContent: 'center',
   },
-  chipActive: { backgroundColor: colors.primary },
+  chipActive: { backgroundColor: colors.primaryDeep },
   chipText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
   chipTextActive: { color: colors.white },
   photoButton: { alignItems: 'center', marginVertical: spacing.sm },
@@ -373,6 +374,6 @@ const styles = StyleSheet.create({
   },
   photoHint: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
   photoPreview: { width: 160, height: 120, borderRadius: radius.md },
-  error: { color: colors.error, fontSize: 14, marginVertical: spacing.sm },
+  error: { color: colors.errorDeep, fontSize: 14, marginVertical: spacing.sm },
   pressed: { opacity: 0.7 },
 });

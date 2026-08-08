@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 28,
     borderRadius: radius.sm,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryDeep,
     minHeight: 10,
   },
   barLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600' },

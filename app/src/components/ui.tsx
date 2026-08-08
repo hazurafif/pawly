@@ -76,7 +76,8 @@ export function Chip({
 export function Badge({ text, tone = 'soft' }: { text: string; tone?: 'soft' | 'danger' | 'success' }) {
   const bg =
     tone === 'danger' ? colors.errorSoft : tone === 'success' ? colors.successSoft : colors.primarySoft;
-  const fg = tone === 'danger' ? colors.error : tone === 'success' ? colors.success : colors.primaryDark;
+  const fg =
+    tone === 'danger' ? colors.errorDeep : tone === 'success' ? colors.successDeep : colors.primaryDeep;
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <Text style={[styles.badgeText, { color: fg }]}>{text}</Text>
@@ -99,7 +100,7 @@ export function Button({
 }) {
   const bg =
     variant === 'primary'
-      ? colors.primary
+      ? colors.primaryDark
       : variant === 'danger'
         ? colors.error
         : variant === 'ghost'
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text },
   sectionAction: { paddingVertical: 4, paddingHorizontal: 8 },
-  sectionActionText: { color: colors.primary, fontSize: 14, fontWeight: '600' },
+  sectionActionText: { color: colors.primaryDeep, fontSize: 14, fontWeight: '600' },
   empty: { alignItems: 'center', paddingVertical: spacing.lg, gap: spacing.sm },
   emptyIcon: {
     width: 48,
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipActive: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
   chipText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   chipTextActive: { color: colors.white },
   badge: {
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    minHeight: 44,
+    minHeight: 48,
   },
   buttonSecondaryBorder: { borderWidth: 1, borderColor: colors.border },
   buttonDisabled: { opacity: 0.5 },
@@ -200,11 +201,11 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.lg,
-    bottom: spacing.lg,
+    bottom: spacing.xxl * 2 + spacing.xl,
     width: 56,
     height: 56,
     borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: colors.primaryDark,

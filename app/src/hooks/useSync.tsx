@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import * as Network from 'expo-network';
 import { Directory, File, Paths } from 'expo-file-system';
 import { useRouter } from 'expo-router';
@@ -31,10 +31,19 @@ async function buildClient(): Promise<{ client: SyncClient; repo: Repository } |
     return null;
   }
   const repo = await getRepository();
+  const fetchImpl =
+    Platform.OS === 'web'
+      ? globalThis.fetch.bind(globalThis)
+      : (await import('expo/fetch')).fetch;
   const transport = new HttpTransport({
     baseUrl,
-    fetch: (await import('expo/fetch')).fetch,
-    fileToBlob: async (uri: string) => new File(uri),
+    fetch: fetchImpl,
+    // Web photo sources are blob:/data: URLs that expo-file-system's File
+    // cannot open — fetch them into a real Blob instead. Native uses File.
+    fileToBlob:
+      Platform.OS === 'web'
+        ? async (uri: string) => (await fetch(uri)).blob()
+        : async (uri: string) => new File(uri),
     saveBytes: async (uri: string, data: Uint8Array) => {
       // uri is a logical key like file:///cache/photos/<id>; only the last
       // segment (the photo id) is meaningful — write under the app cache.

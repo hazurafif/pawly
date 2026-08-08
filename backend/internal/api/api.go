@@ -33,7 +33,25 @@ func New(st *store.Store, ph *photos.Store) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return s.mux
+	// CORS for the web build: the Expo web app runs on a different origin
+	// than the home server. The server is a private home device, so any
+	// origin is acceptable; native clients ignore these headers entirely.
+	return withCORS(s.mux)
+}
+
+// withCORS answers preflights (PUT /photos and POST /sync/push trigger them)
+// and annotates simple requests with the allow-origin header.
+func withCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // RunPhotoGC removes on-disk binaries for photo rows that are soft-deleted
