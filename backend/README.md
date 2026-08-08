@@ -41,7 +41,7 @@ cp .env.example .env
 ## Run with Docker
 
 ```bash
-docker build -t pawly ./server
+docker build -t pawly ./backend
 docker run -d --name pawly -p 8080:8080 -v pawly-data:/data pawly
 ```
 

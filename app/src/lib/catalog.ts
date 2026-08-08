@@ -61,7 +61,7 @@ export const RULE_KIND_META: Record<RuleKind, { icon: string }> = {
 };
 
 export function ruleKindMeta(kind: string) {
-  return (kind in RULE_KIND_META ? RULE_KIND_META : RULE_KIND_META.other) as {
+  return (kind in RULE_KIND_META ? RULE_KIND_META[kind as RuleKind] : RULE_KIND_META.other) as {
     icon: string;
   };
 }

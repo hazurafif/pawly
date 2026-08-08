@@ -1,5 +1,21 @@
-import { describe, expect, it } from 'vitest';
-import { formatDate, formatIDR, parseIsoMs, toIsoMs } from '../format';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  ageFrom,
+  dayKey,
+  dayKeyOfIso,
+  formatDate,
+  formatIDR,
+  formatTime,
+  parseIsoMs,
+  relativeDayLabel,
+  startOfTodayIso,
+  toIsoMs,
+  weightKg,
+} from '../format';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('toIsoMs', () => {
   it('emits fixed-width millisecond RFC3339 UTC (server contract)', () => {
@@ -34,5 +50,89 @@ describe('formatDate', () => {
   });
   it('formats English date', () => {
     expect(formatDate('2026-07-01T12:00:00.500Z', 'en')).toBe('1 July 2026');
+  });
+});
+
+describe('dayKey', () => {
+  it('formats a local date as YYYY-MM-DD with zero padding', () => {
+    expect(dayKey(new Date(2026, 6, 1, 12))).toBe('2026-07-01');
+    expect(dayKey(new Date(2026, 0, 5))).toBe('2026-01-05');
+  });
+});
+
+describe('dayKeyOfIso', () => {
+  it('converts a valid ISO ms timestamp to the local day key', () => {
+    expect(dayKeyOfIso('2026-07-01T12:00:00.500Z')).toBe(dayKey(new Date('2026-07-01T12:00:00.500Z')));
+  });
+  it('returns null for malformed input', () => {
+    expect(dayKeyOfIso('garbage')).toBeNull();
+  });
+});
+
+describe('startOfTodayIso', () => {
+  it('emits local midnight on the current day', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 7, 8, 14, 30));
+    const result = startOfTodayIso();
+    const d = parseIsoMs(result);
+    expect(d).not.toBeNull();
+    expect(dayKey(d!)).toBe(dayKey(new Date()));
+    expect(d!.getHours()).toBe(0);
+    expect(d!.getMinutes()).toBe(0);
+  });
+});
+
+describe('formatTime', () => {
+  it('renders a HH:MM local time', () => {
+    expect(formatTime('2026-07-01T14:32:00.000Z')).toMatch(/^\d{2}:\d{2}$/);
+  });
+  it('returns malformed input unchanged', () => {
+    expect(formatTime('garbage')).toBe('garbage');
+  });
+});
+
+describe('relativeDayLabel', () => {
+  it('labels today, yesterday, and older dates', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-08T00:00:00.000Z'));
+    const today = new Date().toISOString();
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString();
+    expect(relativeDayLabel(today, 'en')).toBe('Today');
+    expect(relativeDayLabel(today, 'id')).toBe('Hari ini');
+    expect(relativeDayLabel(yesterday, 'en')).toBe('Yesterday');
+    expect(relativeDayLabel(yesterday, 'id')).toBe('Kemarin');
+    expect(relativeDayLabel('2026-07-01T12:00:00.500Z', 'en')).toBe('1 July 2026');
+  });
+  it('returns malformed input unchanged', () => {
+    expect(relativeDayLabel('garbage', 'en')).toBe('garbage');
+  });
+});
+
+describe('ageFrom', () => {
+  it('renders years and months from a reference date', () => {
+    const now = new Date(2026, 7, 8);
+    expect(ageFrom(new Date(2024, 2, 15).toISOString(), now)).toBe('2y 4m');
+    expect(ageFrom(new Date(2024, 7, 8).toISOString(), now)).toBe('2y');
+    expect(ageFrom(new Date(2026, 6, 1).toISOString(), now)).toBe('1m');
+  });
+  it('returns null for missing, invalid, or future dates', () => {
+    const now = new Date(2026, 7, 8);
+    expect(ageFrom(null, now)).toBeNull();
+    expect(ageFrom('garbage', now)).toBeNull();
+    expect(ageFrom(new Date(2026, 8, 8).toISOString(), now)).toBeNull();
+    expect(ageFrom(null)).toBeNull();
+  });
+});
+
+describe('weightKg', () => {
+  it('extracts a finite numeric kg value', () => {
+    expect(weightKg('{"kg":4.3}')).toBe(4.3);
+    expect(weightKg('{"kg":0}')).toBe(0);
+  });
+  it('returns null for missing, malformed, or non-numeric payloads', () => {
+    expect(weightKg(null)).toBeNull();
+    expect(weightKg('{}')).toBeNull();
+    expect(weightKg('garbage')).toBeNull();
+    expect(weightKg('{"kg":"4.3"}')).toBeNull();
   });
 });
