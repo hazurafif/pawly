@@ -26,7 +26,10 @@ const SEXES = ['male', 'female', 'unknown'] as const;
 const NEUTERED = ['yes', 'no', 'unknown'] as const;
 
 function chipOptions<T extends string>(t: (k: string) => string, prefix: string, values: readonly T[]) {
-  return values.map((v) => ({ value: v, label: t(`${prefix}${v}`) }));
+  return values.map((v) => ({
+    value: v,
+    label: t(`${prefix}${v.charAt(0).toUpperCase()}${v.slice(1)}`),
+  }));
 }
 
 export default function PetFormScreen() {
