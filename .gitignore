@@ -1,13 +1,3 @@
-.superpowers/
-node_modules/
-dist/
-build/
-*.db
-*.db-journal
 .env
-.DS_Store
-
-app/.expo/
-app/dist/
-data/
-pawly
+backend/data/
+backend/pawly

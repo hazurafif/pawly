@@ -16,14 +16,14 @@ app/       Expo (React Native) mobile app — 4 tabs, SQLite local-first,
 backend/   Go home server — single binary, SQLite, last-write-wins sync,
            photo binaries, launchd service for macOS
 .docs/     PLAN.md (build plan) · SPEC.md (product spec) · TEST_SCRIPT.md
-data/      server SQLite DB + photos (gitignored)
+backend/data/   server SQLite DB + photos (gitignored)
 ```
 
 ## Run it
 
 ```bash
 # server (optional; sync only — the app works fully offline without it)
-cd backend && go build -o pawly ./cmd/pawly && ./pawly
+cd backend && go build -o pawly ./cmd && ./pawly
 
 # app
 cd app && pnpm install && pnpm web        # web prototype at phone size
@@ -42,7 +42,7 @@ cd backend && go test ./...               # 43 tests incl. two-device convergenc
 The E2E test needs a server binary first:
 
 ```bash
-cd backend && go build -o /tmp/pawly-e2e ./cmd/pawly
+cd backend && go build -o /tmp/pawly-e2e ./cmd
 ```
 
 ## Sync contract (short version)

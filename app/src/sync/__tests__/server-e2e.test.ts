@@ -40,7 +40,7 @@ describe('E2E: mobile sync client against the real Pawly Go server', () => {
   beforeAll(async () => {
     if (!existsSync(SERVER_BINARY)) {
       throw new Error(
-        `Missing ${SERVER_BINARY}. Run: cd ${join(REPO_ROOT, 'backend')} && go build -o ${SERVER_BINARY} ./cmd/pawly`
+        `Missing ${SERVER_BINARY}. Run: cd ${join(REPO_ROOT, 'backend')} && go build -o ${SERVER_BINARY} ./cmd`
       );
     }
     mkdirSync(CACHE_DIR, { recursive: true }); // saveBytes writes into it

@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 go build -trimpath -o /out/pawly ./cmd/pawly
+RUN CGO_ENABLED=0 go build -trimpath -o /out/pawly ./cmd
 
 # Runtime stage: distroless static image with a non-root user.
 FROM gcr.io/distroless/static-debian12:nonroot

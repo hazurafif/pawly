@@ -17,7 +17,7 @@ Soft deletes (tombstones) sync like any other row. The server treats the
 ## Build & run
 
 ```bash
-go build -o pawly ./cmd/pawly
+go build -o pawly ./cmd
 ./pawly
 ```
 
@@ -61,7 +61,7 @@ Data lives in the `pawly-data` volume (back it up alongside your photos).
 
 ```bash
 # build and install the binary
-go build -o /usr/local/bin/pawly ./cmd/pawly
+go build -o /usr/local/bin/pawly ./cmd
 
 # install the launch agent
 mkdir -p /Users/Shared/pawly
