@@ -20,10 +20,11 @@ export default function Root({ children }: { children: ReactNode }) {
 
 const responsiveBackground = `
 body {
-  background-color: #FAF6F0;
+  background-color: #F8F9FA;
+  font-family: 'Roboto_400Regular', Roboto, -apple-system, 'Segoe UI', system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #131314;
   }
 }`;

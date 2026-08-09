@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActivePet } from '../src/hooks/useActivePet';
 import { useRepoData } from '../src/hooks/useRepoData';
@@ -9,14 +8,19 @@ import { getRepository } from '../src/db/db';
 import { goBack } from '../src/lib/navigation';
 import { confirmAction } from '../src/lib/confirm';
 import { newId } from '../src/lib/id';
+import { isIsoDateInput } from '../src/lib/format';
 import { RULE_KINDS, ruleKindMeta } from '../src/lib/catalog';
-import { Button, Card } from '../src/components/ui';
+import { Button, Card, ChipGroup } from '../src/components/ui';
+import { DateField } from '../src/components/DateField';
 import type { ReminderRule } from '../src/db/types';
-import { colors, radius, spacing } from '../src/lib/theme';
+import { radius, spacing, type Palette } from '../src/lib/theme';
+import { useAppColors } from '../src/hooks/useTheme';
 
 const REPEATS = ['once', 'daily', 'weekly', 'monthly'] as const;
 
 export default function ReminderFormScreen() {
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string; kind?: string }>();
@@ -65,12 +69,12 @@ export default function ReminderFormScreen() {
     if (!activePet) {
       return;
     }
-    if (!title.trim() || !due.trim()) {
-      setError(t('petForm.nameRequired'));
+    if (!title.trim()) {
+      setError(t('reminder.titleRequired'));
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(due.trim())) {
-      setError(t('petForm.birthDate'));
+    if (!isIsoDateInput(due)) {
+      setError(t('reminder.dueInvalid'));
       return;
     }
     savingRef.current = true;
@@ -132,64 +136,37 @@ export default function ReminderFormScreen() {
     });
   };
 
-  const chipRow = (values: readonly string[], selected: string, onSelect: (v: string) => void, labelPrefix: string) => (
-    <View style={styles.chipRow}>
-      {values.map((v) => (
-        <Pressable
-          key={v}
-          onPress={() => onSelect(v)}
-          accessibilityRole="button"
-          accessibilityState={{ selected: v === selected }}
-          style={({ pressed }) => [styles.chip, v === selected && styles.chipActive, pressed && styles.pressed]}
-        >
-          <Text style={[styles.chipText, v === selected && styles.chipTextActive]}>
-            {t(`${labelPrefix}${v.charAt(0).toUpperCase()}${v.slice(1)}` as never)}
-          </Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <>
+      <Stack.Screen options={{ title: t('reminder.title') }} />
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Card>
         <Text style={styles.label}>{t('reminder.kind')}</Text>
-        <View style={styles.chipRow}>
-          {RULE_KINDS.map((k) => {
-            const meta = ruleKindMeta(k);
-            const active = k === kind;
-            return (
-              <Pressable
-                key={k}
-                onPress={() => setKind(k)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}
-              >
-                <Ionicons name={meta.icon as never} size={16} color={active ? colors.white : colors.primary} />
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                  {t(`ruleKind.${k}` as never)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <ChipGroup
+          options={RULE_KINDS.map((k) => ({
+            value: k,
+            label: t(`ruleKind.${k}` as never),
+            icon: ruleKindMeta(k).icon,
+          }))}
+          value={kind}
+          onSelect={setKind}
+        />
 
         <Text style={styles.label}>{t('reminder.ruleTitle')}</Text>
         <TextInput value={title} onChangeText={setTitle} style={styles.input} accessibilityLabel={t('reminder.ruleTitle')} />
 
         <Text style={styles.label}>{t('reminder.due')}</Text>
-        <TextInput
-          value={due}
-          onChangeText={setDue}
-          placeholder="2026-09-01"
-          placeholderTextColor={colors.textMuted}
-          style={styles.input}
-          accessibilityLabel={t('reminder.due')}
-        />
+        <DateField value={due} onChange={setDue} accessibilityLabel={t('reminder.due')} placeholder={t('common.selectDate')} />
 
         <Text style={styles.label}>{t('reminder.repeat')}</Text>
-        {chipRow(REPEATS, repeat, setRepeat, 'reminder.repeat')}
+        <ChipGroup
+          options={REPEATS.map((v) => ({
+            value: v,
+            label: t(`reminder.repeat${v.charAt(0).toUpperCase()}${v.slice(1)}` as never),
+          }))}
+          value={repeat}
+          onSelect={setRepeat}
+        />
 
         <Text style={styles.label}>{t('reminder.dose')}</Text>
         <TextInput value={dose} onChangeText={setDose} style={styles.input} accessibilityLabel={t('reminder.dose')} />
@@ -202,40 +179,26 @@ export default function ReminderFormScreen() {
 
       <Button label={t('common.save')} onPress={() => void save()} disabled={saving || !activePet} icon="checkmark" />
       {editing ? <Button label={t('reminder.deleteRule')} onPress={remove} variant="danger" icon="trash-outline" /> : null}
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
-  label: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.md },
+  label: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.md },
   input: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.sm,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
-    fontSize: 15,
+    fontFamily: 'Roboto_400Regular', fontSize: 15,
     color: colors.text,
     minHeight: 46,
     marginBottom: spacing.sm,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
-  chipRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceMuted,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  chipActive: { backgroundColor: colors.primaryDeep },
-  chipText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
-  chipTextActive: { color: colors.white },
-  error: { color: colors.errorDeep, fontSize: 14, marginVertical: spacing.sm },
+  error: { color: colors.errorDeep, fontFamily: 'Roboto_400Regular', fontSize: 14, marginVertical: spacing.sm },
   pressed: { opacity: 0.7 },
 });

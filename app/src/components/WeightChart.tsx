@@ -1,11 +1,15 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, radius, spacing } from '../lib/theme';
+import { radius, spacing, type Palette } from '../lib/theme';
+import { useAppColors } from '../hooks/useTheme';
 import { weightKg } from '../lib/format';
 import type { Event } from '../db/types';
 
 // Hand-rolled, zero-dependency bar chart: relative to the visible min/max,
 // so small fluctuations still read clearly. Reads fine on web and native.
 export function WeightChart({ events }: { events: Event[] }) {
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const points = events
     .map((e) => ({ at: e.occurred_at, kg: weightKg(e.data) }))
     .filter((p): p is { at: string; kg: number } => p.kg != null)
@@ -40,7 +44,7 @@ export function WeightChart({ events }: { events: Event[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   wrap: { marginTop: spacing.md },
   chart: {
     flexDirection: 'row',
@@ -56,6 +60,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryDeep,
     minHeight: 10,
   },
-  barLabel: { fontSize: 10, color: colors.textMuted, fontWeight: '600' },
-  range: { fontSize: 11, color: colors.textMuted, marginTop: spacing.sm, fontWeight: '600' },
+  barLabel: { fontSize: 10, color: colors.textMuted, fontFamily: 'Roboto_500Medium' },
+  range: { fontSize: 11, color: colors.textMuted, marginTop: spacing.sm, fontFamily: 'Roboto_500Medium' },
 });

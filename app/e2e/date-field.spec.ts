@@ -43,11 +43,11 @@ test('date input colors follow the active theme', async ({ page }) => {
   await page.goto('/entry-form');
   const input = page.locator('input[type="date"]');
 
-  // Native calendar popup + icon follow the dark palette.
+  // Native calendar popup + icon follow the dark palette (M3 blue).
   await expect(input).toHaveCSS('color-scheme', 'dark');
-  await expect(input).toHaveCSS('accent-color', 'rgb(123, 150, 196)'); // darkColors.primary
+  await expect(input).toHaveCSS('accent-color', 'rgb(138, 180, 248)'); // darkColors.primary
 
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(input).toHaveCSS('color-scheme', 'light');
-  await expect(input).toHaveCSS('accent-color', 'rgb(74, 109, 167)'); // colors.primary
+  await expect(input).toHaveCSS('accent-color', 'rgb(26, 115, 232)'); // colors.primary
 });

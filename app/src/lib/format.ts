@@ -52,6 +52,40 @@ export function startOfTodayIso(): string {
   return d.toISOString();
 }
 
+// Parses a 'YYYY-MM-DD' form value into a UTC ISO timestamp at local noon,
+// so the calendar day never shifts across timezones. Returns null when the
+// input is empty or not a real calendar date (rejects impossible dates like
+// 2026-02-30 that Date would silently roll over).
+export function parseLocalDateInput(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!m) {
+    return null;
+  }
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const date = new Date(y, mo - 1, d, 12);
+  // Date rolls invalid dates over (Feb 30 -> Mar 1); verify the round trip.
+  if (
+    date.getFullYear() !== y ||
+    date.getMonth() !== mo - 1 ||
+    date.getDate() !== d ||
+    Number.isNaN(date.getTime())
+  ) {
+    return null;
+  }
+  return date.toISOString();
+}
+
+// Strict shape + calendar check for a required date input.
+export function isIsoDateInput(value: string): boolean {
+  return parseLocalDateInput(value) !== null;
+}
+
 // Local-time clock, e.g. "14:32".
 export function formatTime(isoMs: string): string {
   const d = parseIsoMs(isoMs);

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { getRepository } from '../src/db/db';
 import { newId } from '../src/lib/id';
-import { colors, radius, spacing } from '../src/lib/theme';
+import { radius, spacing, type Palette } from '../src/lib/theme';
+import { useAppColors } from '../src/hooks/useTheme';
 
 // DEV-ONLY sample data for screenshots and the TEST_SCRIPT walkthrough.
 // Reachable at /seed; never shipped in production flows. Not for sync.
@@ -41,6 +42,8 @@ async function makePhotoUri(seed: number): Promise<string> {
 }
 
 export default function SeedScreen() {
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ force?: string }>();
@@ -241,16 +244,16 @@ export default function SeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: colors.background },
-  text: { fontSize: 14, color: colors.textMuted },
-  done: { fontSize: 18, fontWeight: '800', color: colors.text },
-  error: { fontSize: 14, color: colors.errorDeep, paddingHorizontal: spacing.lg, textAlign: 'center' },
+  text: { fontFamily: 'Roboto_400Regular', fontSize: 14, color: colors.textMuted },
+  done: { fontSize: 18, fontFamily: 'Roboto_700Bold', color: colors.text },
+  error: { fontFamily: 'Roboto_400Regular', fontSize: 14, color: colors.errorDeep, paddingHorizontal: spacing.lg, textAlign: 'center' },
   button: {
     backgroundColor: colors.primaryDark,
     borderRadius: radius.sm,
     paddingVertical: 12,
     paddingHorizontal: 24,
   },
-  buttonText: { color: colors.white, fontSize: 15, fontWeight: '700' },
+  buttonText: { color: colors.white, fontSize: 15, fontFamily: 'Roboto_700Bold' },
 });

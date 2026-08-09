@@ -22,7 +22,7 @@ const createStyles = (colors: Palette) =>
       borderColor: colors.border,
     },
     chipActive: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
-    chipText: { fontSize: 14, fontWeight: '700', color: colors.text, maxWidth: 120 },
+    chipText: { fontSize: 14, fontFamily: 'Roboto_700Bold', color: colors.text, maxWidth: 120 },
     chipTextActive: { color: colors.primaryDeep },
     avatarFallback: {
       backgroundColor: colors.primarySoft,

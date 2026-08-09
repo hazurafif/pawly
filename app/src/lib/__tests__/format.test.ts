@@ -6,7 +6,9 @@ import {
   formatDate,
   formatIDR,
   formatTime,
+  isIsoDateInput,
   parseIsoMs,
+  parseLocalDateInput,
   relativeDayLabel,
   startOfTodayIso,
   toIsoMs,
@@ -79,6 +81,48 @@ describe('startOfTodayIso', () => {
     expect(dayKey(d!)).toBe(dayKey(new Date()));
     expect(d!.getHours()).toBe(0);
     expect(d!.getMinutes()).toBe(0);
+  });
+});
+
+describe('parseLocalDateInput', () => {
+  it('parses a YYYY-MM-DD form value into local noon UTC ISO', () => {
+    const iso = parseLocalDateInput('2026-08-05');
+    expect(iso).not.toBeNull();
+    expect(iso!.slice(0, 10)).toBe('2026-08-05');
+    // Local noon: the wall-clock hour in the test environment is 12:00.
+    expect(new Date(iso!).getHours()).toBe(12);
+  });
+
+  it('returns null for empty and whitespace-only input', () => {
+    expect(parseLocalDateInput('')).toBeNull();
+    expect(parseLocalDateInput('   ')).toBeNull();
+  });
+
+  it('rejects non-date garbage and wrong shapes', () => {
+    expect(parseLocalDateInput('garbage')).toBeNull();
+    expect(parseLocalDateInput('2026-8-5')).toBeNull();
+    expect(parseLocalDateInput('2026/08/05')).toBeNull();
+    expect(parseLocalDateInput('2026-08-05T00:00')).toBeNull();
+  });
+
+  it('rejects impossible calendar dates instead of rolling over', () => {
+    expect(parseLocalDateInput('2026-02-30')).toBeNull();
+    expect(parseLocalDateInput('2026-13-01')).toBeNull();
+    expect(parseLocalDateInput('2026-00-10')).toBeNull();
+  });
+
+  it('accepts leap-day dates on leap years only', () => {
+    expect(parseLocalDateInput('2024-02-29')).not.toBeNull();
+    expect(parseLocalDateInput('2026-02-29')).toBeNull();
+  });
+});
+
+describe('isIsoDateInput', () => {
+  it('is true exactly for real calendar dates', () => {
+    expect(isIsoDateInput('2026-08-05')).toBe(true);
+    expect(isIsoDateInput('')).toBe(false);
+    expect(isIsoDateInput('not-a-date')).toBe(false);
+    expect(isIsoDateInput('2026-13-01')).toBe(false);
   });
 });
 

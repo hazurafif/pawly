@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,14 +7,15 @@ import { useActivePet } from '../../src/hooks/useActivePet';
 import { useRepoData } from '../../src/hooks/useRepoData';
 import { Badge, Button, Card, EmptyState, SectionHeader } from '../../src/components/ui';
 import { PetSwitcher } from '../../src/components/PetSwitcher';
-import { Toast } from '../../src/components/Toast';
+import { useToast } from '../../src/components/Toast';
 import { QUICK_KINDS, kindMeta } from '../../src/lib/catalog';
 import { checklistProgress } from '../../src/lib/checklist';
 import { logEvent } from '../../src/lib/entries';
 import { lastCompletionForRule, nextDueIso, ruleStatus } from '../../src/lib/rules';
 import { formatTime, startOfTodayIso, weightKg } from '../../src/lib/format';
 import { petAgeLabel } from '../../src/lib/entries';
-import { colors, radius, spacing } from '../../src/lib/theme';
+import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
+import { useAppColors } from '../../src/hooks/useTheme';
 import type { Event, ReminderRule } from '../../src/db/types';
 
 function speciesLabel(t: (k: string) => string, species: string): string {
@@ -31,9 +32,11 @@ function sexLabel(t: (k: string) => string, sex: string): string {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { pets, activePet, setActivePetId, loading } = useActivePet();
-  const [toast, setToast] = useState<{ message: string; undo?: () => void } | null>(null);
+  const { showToast } = useToast();
 
   const petId = activePet?.id ?? null;
   const { data: todayEvents } = useRepoData((r) =>
@@ -80,8 +83,9 @@ export default function HomeScreen() {
       return;
     }
     const row = await logEvent(await import('../../src/db/db').then((m) => m.getRepository()), petId, kind);
-    setToast({
+    showToast({
       message: `${t('entry.undoLogged')} ${formatTime(row.occurred_at)} · ${t(`event.kinds.${kind}` as never)}`,
+      undoLabel: t('common.undo'),
       undo: () =>
         void import('../../src/db/db')
           .then((m) => m.getRepository())
@@ -111,7 +115,6 @@ export default function HomeScreen() {
           <EmptyState icon="paw-outline" text={t('home.petsEmpty')} />
           <Button label={t('home.addPet')} onPress={() => router.push('/pet-form')} icon="add" />
         </Card>
-        <Toast message={toast?.message ?? null} undoLabel={t('common.undo')} onUndo={toast?.undo} onDone={() => setToast(null)} />
       </ScrollView>
     );
   }
@@ -131,7 +134,7 @@ export default function HomeScreen() {
             />
           ) : (
             <View style={styles.petPhotoFallback}>
-              <Ionicons name="paw" size={28} color={colors.primary} />
+              <Ionicons name="paw" size={32} color={colors.primary} />
             </View>
           )}
           <View style={styles.petInfo}>
@@ -147,6 +150,15 @@ export default function HomeScreen() {
               ) : null}
             </View>
           </View>
+          <Pressable
+            onPress={() => router.push(`/pet-form?id=${activePet.id}`)}
+            accessibilityRole="button"
+            accessibilityLabel={t('petForm.title')}
+            hitSlop={8}
+            style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}
+          >
+            <Ionicons name="pencil" size={16} color={colors.textMuted} />
+          </Pressable>
         </View>
       </Card>
 
@@ -201,22 +213,36 @@ export default function HomeScreen() {
         </View>
         <View style={styles.checklistItems}>
           {checklist.items.map((item) => {
-            const meta = kindMeta(item.kind);
             const complete = item.done >= item.target;
+            const label = t(`event.kinds.${item.kind}` as never);
             return (
-              <View key={item.kind} style={styles.checklistItem}>
+              <Pressable
+                key={item.kind}
+                onPress={() => {
+                  if (!complete) {
+                    void quickLog(item.kind);
+                  }
+                }}
+                disabled={complete}
+                accessibilityRole="button"
+                accessibilityLabel={`${label} ${item.done}/${item.target}`}
+                style={({ pressed }) => [
+                  styles.checklistItem,
+                  pressed && !complete && styles.quickPressed,
+                ]}
+              >
                 <Ionicons
                   name={complete ? 'checkmark-circle' : 'ellipse-outline'}
                   size={20}
                   color={complete ? colors.success : colors.border}
                 />
                 <Text style={[styles.checklistItemText, complete && styles.checklistItemDone]}>
-                  {t(`event.kinds.${item.kind}` as never)}
+                  {label}
                 </Text>
                 <Text style={styles.checklistItemCount}>
                   {item.done}/{item.target}
                 </Text>
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -252,8 +278,9 @@ export default function HomeScreen() {
                     title: rule.title,
                     data: { rule_id: rule.id },
                   });
-                  setToast({
+                  showToast({
                     message: `${t('entry.undoLogged')} · ${rule.title}`,
+                    undoLabel: t('common.undo'),
                     undo: () => void repo.softDelete('events', row.id),
                   });
                 })()
@@ -309,19 +336,13 @@ export default function HomeScreen() {
         </Pressable>
       ) : null}
 
-      <Toast
-        message={toast?.message ?? null}
-        undoLabel={t('common.undo')}
-        onUndo={toast?.undo}
-        onDone={() => setToast(null)}
-      />
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
+  content: { padding: spacing.md, paddingBottom: tabBarClearance },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   hero: { alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.lg },
   heroIcon: {
@@ -332,43 +353,60 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
   },
-  appName: { fontSize: 26, fontWeight: '800', color: colors.text, marginTop: spacing.sm },
-  tagline: { fontSize: 14, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' },
+  appName: { fontSize: 26, fontFamily: 'Roboto_700Bold', color: colors.text, marginTop: spacing.sm },
+  tagline: { fontFamily: 'Roboto_400Regular', fontSize: 14, color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' },
   petCard: {},
   petRow: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
-  petPhoto: { width: 72, height: 72, borderRadius: radius.lg },
+  petPhoto: { width: 84, height: 84, borderRadius: radius.lg },
   petPhotoFallback: {
-    width: 72,
-    height: 72,
+    width: 84,
+    height: 84,
     borderRadius: radius.lg,
     backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   petInfo: { flex: 1 },
-  petName: { fontSize: 20, fontWeight: '800', color: colors.text },
-  petSubtitle: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  petName: { fontSize: 24, fontFamily: 'Roboto_700Bold', color: colors.text },
+  petSubtitle: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted, marginTop: 2 },
   badgeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, flexWrap: 'wrap' },
+  editButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   quickRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-  quickItem: { alignItems: 'center', gap: 6, flex: 1, minHeight: 72 },
+  quickItem: {
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+  },
   quickPressed: { opacity: 0.7, transform: [{ scale: 0.95 }] },
   quickIcon: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickLabel: { fontSize: 12, fontWeight: '600', color: colors.text },
+  quickLabel: { fontSize: 12, fontFamily: 'Roboto_500Medium', color: colors.text },
   checklistHeader: { marginBottom: spacing.sm },
-  checklistProgress: { fontSize: 13, fontWeight: '600', color: colors.textMuted, marginBottom: spacing.sm },
+  checklistProgress: { fontSize: 13, fontFamily: 'Roboto_500Medium', color: colors.textMuted, marginBottom: spacing.sm },
   progressTrack: { height: 6, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: radius.pill, backgroundColor: colors.success },
   checklistItems: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md },
   checklistItem: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: '45%' },
-  checklistItemText: { fontSize: 13, fontWeight: '600', color: colors.text, flex: 1 },
+  checklistItemText: { fontSize: 13, fontFamily: 'Roboto_500Medium', color: colors.text, flex: 1 },
   checklistItemDone: { color: colors.textMuted, textDecorationLine: 'line-through' },
-  checklistItemCount: { fontSize: 12, fontWeight: '700', color: colors.textMuted },
+  checklistItemCount: { fontSize: 12, fontFamily: 'Roboto_700Bold', color: colors.textMuted },
   ruleCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   ruleIcon: {
     width: 40,
@@ -379,14 +417,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ruleInfo: { flex: 1 },
-  ruleTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  ruleMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  ruleTitle: { fontSize: 15, fontFamily: 'Roboto_700Bold', color: colors.text },
+  ruleMeta: { fontFamily: 'Roboto_400Regular', fontSize: 12, color: colors.textMuted, marginTop: 2 },
   doneButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   entryCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   entryIcon: { width: 40, height: 40, borderRadius: radius.sm + 2, alignItems: 'center', justifyContent: 'center' },
-  entryTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  entryText: { fontSize: 13, color: colors.textMuted, marginTop: 1 },
-  entryTime: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  entryTitle: { fontSize: 15, fontFamily: 'Roboto_700Bold', color: colors.text },
+  entryText: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted, marginTop: 1 },
+  entryTime: { fontSize: 12, color: colors.textMuted, fontFamily: 'Roboto_500Medium' },
   memoryTeaser: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -395,6 +433,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     marginTop: spacing.sm,
   },
-  memoryTeaserText: { fontSize: 14, fontWeight: '700', color: colors.text },
+  memoryTeaserText: { fontSize: 14, fontFamily: 'Roboto_700Bold', color: colors.text },
   pressed: { opacity: 0.7 },
 });

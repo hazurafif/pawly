@@ -84,7 +84,7 @@ export async function setServerUrl(value: string): Promise<void> {
 
 export async function getLanguage(): Promise<'id' | 'en'> {
   const lang = await safeGet(KEY_LANGUAGE);
-  return lang === 'en' ? 'en' : 'id';
+  return lang === 'id' ? 'id' : 'en';
 }
 
 export async function setLanguage(lang: 'id' | 'en'): Promise<void> {

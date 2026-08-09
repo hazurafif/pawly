@@ -21,9 +21,9 @@ describe('settings', () => {
     delete process.env.EXPO_PUBLIC_PAWLY_PORT;
   });
 
-  it('defaults: no server URL, Indonesian language', async () => {
+  it('defaults: no server URL, English language', async () => {
     expect(await getServerUrl()).toBeNull();
-    expect(await getLanguage()).toBe('id');
+    expect(await getLanguage()).toBe('en');
   });
 
   it('round-trips server URL and language', async () => {

@@ -54,3 +54,24 @@ test('deleting a pet removes it everywhere', async ({ page }) => {
   await expect(page.getByText('Miko', { exact: true })).toHaveCount(0);
   await expect(page.getByText('No pets yet. Add your first one!')).toBeVisible();
 });
+
+test('birth and gotcha dates use a real date picker and persist', async ({ page }) => {
+  await setEnglish(page);
+  await createPet(page);
+
+  await page.goto('/settings');
+  await page.getByText('Miko', { exact: true }).click();
+  await expect(page).toHaveURL(/pet-form/);
+
+  // Date fields are real <input type="date"> controls on web, not free text.
+  await expect(page.getByLabel('Birth date')).toHaveAttribute('type', 'date');
+  await expect(page.getByLabel('Gotcha day')).toHaveAttribute('type', 'date');
+  await page.getByLabel('Birth date').fill('2024-03-15');
+  await page.getByLabel('Gotcha day').fill('2024-05-01');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/settings/);
+
+  await page.getByText('Miko', { exact: true }).click();
+  await expect(page.getByLabel('Birth date')).toHaveValue('2024-03-15');
+  await expect(page.getByLabel('Gotcha day')).toHaveValue('2024-05-01');
+});

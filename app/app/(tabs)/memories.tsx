@@ -10,10 +10,13 @@ import { formatDate } from '../../src/lib/format';
 import { petAgeLabel } from '../../src/lib/entries';
 import { kindMeta } from '../../src/lib/catalog';
 import type { Event, PhotoWithUri } from '../../src/db/types';
-import { colors, radius, spacing } from '../../src/lib/theme';
+import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
+import { useAppColors } from '../../src/hooks/useTheme';
 
 export default function MemoriesScreen() {
   const { t, i18n } = useTranslation();
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const locale = i18n.language === 'id' ? 'id' : 'en';
   const router = useRouter();
   const { activePet } = useActivePet();
@@ -154,9 +157,9 @@ export default function MemoriesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
+  content: { padding: spacing.md, paddingBottom: tabBarClearance },
   loading: { marginTop: spacing.xl },
   gotchaCard: {
     flexDirection: 'row',
@@ -178,16 +181,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   gotchaInfo: { flex: 1 },
-  gotchaTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
-  gotchaSub: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  gotchaAge: { fontSize: 13, color: colors.primaryDark, fontWeight: '700', marginTop: 4 },
+  gotchaTitle: { fontSize: 16, fontFamily: 'Roboto_700Bold', color: colors.text },
+  gotchaSub: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  gotchaAge: { fontSize: 13, color: colors.primaryDark, fontFamily: 'Roboto_700Bold', marginTop: 4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   gridItem: { width: '31%', flexGrow: 1, aspectRatio: 1, borderRadius: radius.md, overflow: 'hidden' },
   gridImage: { width: '100%', height: '100%' },
   favRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
   favIcon: { width: 40, height: 40, borderRadius: radius.sm + 2, alignItems: 'center', justifyContent: 'center' },
   favInfo: { flex: 1 },
-  favTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  favMeta: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  favTitle: { fontSize: 15, fontFamily: 'Roboto_700Bold', color: colors.text },
+  favMeta: { fontFamily: 'Roboto_400Regular', fontSize: 12, color: colors.textMuted, marginTop: 1 },
   pressed: { opacity: 0.7 },
 });

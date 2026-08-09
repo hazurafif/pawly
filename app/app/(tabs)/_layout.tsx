@@ -45,11 +45,11 @@ export default function TabLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: '700', color: colors.text },
+        headerTitleStyle: { fontFamily: 'Roboto_700Bold', color: colors.text },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: [styles.tabBar, { bottom: Math.max(16, insets.bottom + 8) }],
-        tabBarLabelStyle: { fontWeight: '600' },
+        tabBarLabelStyle: { fontFamily: 'Roboto_500Medium' },
         headerRight: settingsButton,
       }}
     >

@@ -23,21 +23,21 @@ test('language buttons highlight the active language', async ({ page }) => {
   // Default locale is English: primarySoft tint on the active button.
   await expect(page.getByRole('button', { name: 'English' })).toHaveCSS(
     'background-color',
-    'rgb(233, 238, 245)'
+    'rgb(211, 227, 253)'
   );
   await expect(page.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveCSS(
     'background-color',
-    'rgb(239, 239, 241)'
+    'rgb(233, 237, 243)'
   );
 
   await page.getByText('Bahasa Indonesia', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveCSS(
     'background-color',
-    'rgb(233, 238, 245)'
+    'rgb(211, 227, 253)'
   );
   await expect(page.getByRole('button', { name: 'English' })).toHaveCSS(
     'background-color',
-    'rgb(239, 239, 241)'
+    'rgb(233, 237, 243)'
   );
 });
 

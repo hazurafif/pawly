@@ -10,17 +10,17 @@ i18n.use(initReactI18next).init({
     id: { translation: id },
     en: { translation: en },
   },
-  lng: 'id',
-  fallbackLng: 'id',
+  lng: 'en',
+  fallbackLng: 'en',
   interpolation: { escapeValue: false },
 });
 
-// restore the stored language on startup (defaults to id)
+// restore the stored language on startup (defaults to en)
 void getLanguage().then((lang) => i18n.changeLanguage(lang));
 
 export function detectLanguage(): 'id' | 'en' {
-  const locale = getLocales()[0]?.languageCode ?? 'id';
-  return locale === 'en' ? 'en' : 'id';
+  const locale = getLocales()[0]?.languageCode;
+  return locale === 'id' ? 'id' : 'en';
 }
 
 export async function setAppLanguage(lang: 'id' | 'en'): Promise<void> {

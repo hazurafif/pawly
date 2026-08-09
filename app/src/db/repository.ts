@@ -90,6 +90,16 @@ export class Repository {
     return out;
   }
 
+  // Returns one row by table + id (including tombstoned rows), or null
+  // when it doesn't exist locally. Used by the sync client to attach
+  // parent rows to a push batch.
+  async getRow(table: TableName, id: string): Promise<(Row & { id: string }) | null> {
+    return this.db.first<Row & { id: string }>(
+      `SELECT ${COLUMNS[table].join(', ')} FROM ${table} WHERE id = ?`,
+      [id]
+    );
+  }
+
   // Deletes dirty rows only when the row's CURRENT updated_at still matches
   // the one that was pushed: an edit made mid-sync bumps updated_at, so the
   // dirty row survives and the newer state is pushed on the next pass.

@@ -49,11 +49,20 @@ describe('candidateHosts', () => {
     expect(hosts).not.toContain('192.168.1.255');
   });
 
-  it('falls back to localhost when the IP is unknown', async () => {
+  it('probes emulator loopback aliases before the LAN scan', async () => {
+    mocks.getIpAddressAsync.mockResolvedValue('192.168.1.23');
+    const hosts = await candidateHosts(() => mocks.getIpAddressAsync());
+    // Android emulator -> dev machine loopback, then iOS sim / web localhost.
+    expect(hosts[0]).toBe('10.0.2.2');
+    expect(hosts[1]).toBe('localhost');
+    expect(hosts.indexOf('192.168.1.50')).toBeGreaterThan(hosts.indexOf('10.0.2.2'));
+  });
+
+  it('falls back to the loopback aliases when the IP is unknown', async () => {
     mocks.getIpAddressAsync.mockResolvedValue('0.0.0.0');
-    expect(await candidateHosts(() => mocks.getIpAddressAsync())).toEqual(['localhost']);
+    expect(await candidateHosts(() => mocks.getIpAddressAsync())).toEqual(['10.0.2.2', 'localhost']);
     mocks.getIpAddressAsync.mockRejectedValue(new Error('no ip'));
-    expect(await candidateHosts(() => mocks.getIpAddressAsync())).toEqual(['localhost']);
+    expect(await candidateHosts(() => mocks.getIpAddressAsync())).toEqual(['10.0.2.2', 'localhost']);
   });
 });
 

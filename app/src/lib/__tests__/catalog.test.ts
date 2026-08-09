@@ -26,7 +26,7 @@ describe('kindMeta', () => {
   });
 
   it('falls back for unknown kinds', () => {
-    expect(kindMeta('bogus')).toEqual({ icon: 'ellipse-outline', color: '#8A857D', chip: 'care' });
+    expect(kindMeta('bogus')).toEqual({ icon: 'ellipse-outline', color: '#7E7E84', chip: 'care' });
   });
 });
 

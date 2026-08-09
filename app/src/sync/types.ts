@@ -10,6 +10,7 @@ export interface SyncStore {
   getCursor(): Promise<string | null>;
   setCursor(cursor: string): Promise<void>;
   getDirtyRows(): Promise<{ table: TableName; row: Row & { id: string } }[]>;
+  getRow(table: TableName, id: string): Promise<(Row & { id: string }) | null>;
   clearDirty(ids: { table: TableName; id: string; updatedAt: string }[]): Promise<void>;
   applyChanges(changes: Changes): Promise<{ maxUpdatedAt: string | null }>;
   getPendingPhotos(): Promise<{ id: string; localUri: string }[]>;

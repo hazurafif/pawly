@@ -1,20 +1,23 @@
 import { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActivePet } from '../src/hooks/useActivePet';
 import { useRepoData } from '../src/hooks/useRepoData';
 import { Card, EmptyState, SectionHeader } from '../src/components/ui';
+import { MOOD_VALUES } from '../src/lib/catalog';
 import { formatDate, weightKg } from '../src/lib/format';
 import type { Event } from '../src/db/types';
-import { colors, radius, spacing } from '../src/lib/theme';
-
-const MOODS = ['great', 'good', 'ok', 'low', 'bad'] as const;
+import { radius, spacing, type Palette } from '../src/lib/theme';
+import { useAppColors } from '../src/hooks/useTheme';
 
 function sinceIso(daysAgo: number): string {
   return new Date(Date.now() - daysAgo * 86_400_000).toISOString();
 }
 
 export default function VetReportScreen() {
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'id' ? 'id' : 'en';
   const { activePet } = useActivePet();
@@ -55,7 +58,9 @@ export default function VetReportScreen() {
   const hasData = report.total > 0;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <>
+      <Stack.Screen options={{ title: t('health.vetReport') }} />
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>{t('health.reportTitle', { name: activePet.name })}</Text>
       <Text style={styles.period}>{t('health.reportPeriod')} · {formatDate(sinceIso(30), locale)} → today</Text>
 
@@ -99,7 +104,7 @@ export default function VetReportScreen() {
                   try {
                     const d = JSON.parse(e.data) as Record<string, unknown>;
                     if (typeof d.score === 'number' && d.score > 0) {
-                      summary = t(`mood.${MOODS[Math.min(MOODS.length - 1, d.score - 1)]}`);
+                      summary = t(`mood.${MOOD_VALUES[Math.min(MOOD_VALUES.length - 1, d.score - 1)]}`);
                     }
                     if (typeof d.appetite === 'string') {
                       summary += ` · ${t(`entry.appetite${d.appetite[0].toUpperCase()}${d.appetite.slice(1)}`)}`;
@@ -132,7 +137,7 @@ export default function VetReportScreen() {
             )}
           </Card>
 
-          <SectionHeader icon="pills-outline" title={t('health.reportMeds')} />
+          <SectionHeader icon="bandage-outline" title={t('health.reportMeds')} />
           <Card>
             {report.meds.length === 0 ? (
               <Text style={styles.muted}>{t('health.reportNoMeds')}</Text>
@@ -170,19 +175,20 @@ export default function VetReportScreen() {
           </Card>
         </>
       )}
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   loading: { marginTop: spacing.xl },
-  heading: { fontSize: 22, fontWeight: '800', color: colors.text, marginTop: spacing.md },
-  period: { fontSize: 13, color: colors.textMuted, marginTop: 2, marginBottom: spacing.sm },
+  heading: { fontSize: 22, fontFamily: 'Roboto_700Bold', color: colors.text, marginTop: spacing.md },
+  period: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted, marginTop: 2, marginBottom: spacing.sm },
   line: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, paddingVertical: 6 },
-  lineText: { fontSize: 14, color: colors.text, fontWeight: '600' },
-  lineValue: { fontSize: 14, color: colors.textMuted, flexShrink: 1, textAlign: 'right' },
-  muted: { fontSize: 13, color: colors.textMuted },
+  lineText: { fontSize: 14, color: colors.text, fontFamily: 'Roboto_500Medium' },
+  lineValue: { fontFamily: 'Roboto_400Regular', fontSize: 14, color: colors.textMuted, flexShrink: 1, textAlign: 'right' },
+  muted: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted },
 });

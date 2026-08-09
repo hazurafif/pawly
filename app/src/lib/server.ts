@@ -42,11 +42,16 @@ export async function checkHealth(baseUrl: string, deps: HealthDeps = {}): Promi
 
 // Hosts worth probing: on web the app and the home server usually share the
 // dev machine (location.hostname); on native the server lives somewhere on
-// the same /24 subnet as the device, so probe every host octet.
+// the same /24 subnet as the device, so probe every host octet. Loopback
+// aliases are probed first: the Android emulator reaches the dev machine's
+// loopback via 10.0.2.2, and the iOS simulator shares localhost — both beat
+// a LAN scan when the backend runs on the dev machine.
 export async function candidateHosts(
   getIp: () => Promise<string> = () => Network.getIpAddressAsync()
 ): Promise<string[]> {
   const hosts = new Set<string>();
+  hosts.add('10.0.2.2');
+  hosts.add('localhost');
   if (typeof location !== 'undefined' && location?.hostname) {
     hosts.add(location.hostname);
   }
@@ -61,10 +66,7 @@ export async function candidateHosts(
       }
     }
   } catch {
-    // IP unknown — stick with the web hosts
-  }
-  if (hosts.size === 0) {
-    hosts.add('localhost');
+    // IP unknown — stick with the loopback/web hosts
   }
   return [...hosts];
 }

@@ -11,7 +11,8 @@ import { Fab } from '../../src/components/ui';
 import { kindMeta } from '../../src/lib/catalog';
 import { dayKeyOfIso, formatTime, relativeDayLabel, weightKg } from '../../src/lib/format';
 import type { Event, PhotoWithUri } from '../../src/db/types';
-import { colors, radius, spacing } from '../../src/lib/theme';
+import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
+import { useAppColors } from '../../src/hooks/useTheme';
 
 const CARE_KINDS = ['feed', 'water', 'walk', 'potty', 'mood', 'photo', 'milestone', 'task'];
 const HEALTH_KINDS = ['checkin', 'symptom', 'med_given', 'vaccine', 'visit', 'weight', 'vet_bill'];
@@ -43,6 +44,8 @@ function eventSummary(e: Event): string | null {
 
 export default function JournalScreen() {
   const { t, i18n } = useTranslation();
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const locale = i18n.language === 'id' ? 'id' : 'en';
   const router = useRouter();
   const { activePet } = useActivePet();
@@ -94,17 +97,19 @@ export default function JournalScreen() {
   }, [filtered]);
 
   const toggleFavorite = (e: Event) => {
-    void getRepository().then((repo) => repo.setFavorite(e.id, e.favorite !== 1));
+    const next = e.favorite !== 1;
+    void getRepository()
+      .then((repo) => repo.setFavorite(e.id, next))
+      .catch(() => {
+        // Revert the optimistic toggle when the write fails.
+        void getRepository().then((repo) => repo.setFavorite(e.id, e.favorite === 1));
+      });
   };
 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionHeader
-          icon="book-outline"
-          title={t('journal.title')}
-          action={{ label: t('common.add'), onPress: () => router.push('/entry-form') }}
-        />
+        <SectionHeader icon="book-outline" title={t('journal.title')} />
 
         <TextInput
           value={query}
@@ -144,35 +149,35 @@ export default function JournalScreen() {
                 const meta = kindMeta(e.kind);
                 const photo = photoByEvent.get(e.id);
                 return (
-                  <Pressable
-                    key={e.id}
-                    onPress={() => router.push(`/entry-form?id=${e.id}`)}
-                    accessibilityRole="button"
-                    accessibilityLabel={eventTitle(t, e)}
-                    style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-                  >
-                    <View style={[styles.icon, { backgroundColor: meta.color + '22' }]}>
-                      <Ionicons name={meta.icon as never} size={20} color={meta.color} />
-                    </View>
-                    <View style={styles.info}>
-                      <Text style={styles.title} numberOfLines={1}>
-                        {eventTitle(t, e)}
-                      </Text>
-                      {eventSummary(e) ? (
-                        <Text style={styles.summary} numberOfLines={1}>
-                          {eventSummary(e)}
-                        </Text>
-                      ) : null}
-                      <Text style={styles.meta}>{formatTime(e.occurred_at)}</Text>
-                    </View>
-                    {photo?.local_uri ? (
-                      <Image source={{ uri: photo.local_uri }} style={styles.thumb} accessibilityIgnoresInvertColors />
-                    ) : null}
+                  // The heart is a sibling of the row button — a <button>
+                  // nested inside another <button> is invalid HTML on web.
+                  <View key={e.id} style={styles.row}>
                     <Pressable
-                      onPress={(ev) => {
-                        ev.stopPropagation();
-                        toggleFavorite(e);
-                      }}
+                      onPress={() => router.push(`/entry-form?id=${e.id}`)}
+                      accessibilityRole="button"
+                      accessibilityLabel={eventTitle(t, e)}
+                      style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
+                    >
+                      <View style={[styles.icon, { backgroundColor: meta.color + '22' }]}>
+                        <Ionicons name={meta.icon as never} size={20} color={meta.color} />
+                      </View>
+                      <View style={styles.info}>
+                        <Text style={styles.title} numberOfLines={1}>
+                          {eventTitle(t, e)}
+                        </Text>
+                        {eventSummary(e) ? (
+                          <Text style={styles.summary} numberOfLines={1}>
+                            {eventSummary(e)}
+                          </Text>
+                        ) : null}
+                        <Text style={styles.meta}>{formatTime(e.occurred_at)}</Text>
+                      </View>
+                      {photo?.local_uri ? (
+                        <Image source={{ uri: photo.local_uri }} style={styles.thumb} accessibilityIgnoresInvertColors />
+                      ) : null}
+                    </Pressable>
+                    <Pressable
+                      onPress={() => toggleFavorite(e)}
                       accessibilityRole="button"
                       accessibilityLabel={e.favorite === 1 ? t('journal.unfavorite') : t('journal.favorite')}
                       hitSlop={10}
@@ -184,7 +189,7 @@ export default function JournalScreen() {
                         color={e.favorite === 1 ? colors.error : colors.textMuted}
                       />
                     </Pressable>
-                  </Pressable>
+                  </View>
                 );
               })}
             </View>
@@ -196,23 +201,23 @@ export default function JournalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
+  content: { padding: spacing.md, paddingBottom: tabBarClearance },
   loading: { marginTop: spacing.xl },
   search: {
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
-    fontSize: 15,
+    fontFamily: 'Roboto_400Regular', fontSize: 15,
     color: colors.text,
     marginBottom: spacing.md,
   },
   chips: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
   dayHeader: {
     fontSize: 13,
-    fontWeight: '800',
+    fontFamily: 'Roboto_700Bold',
     color: colors.textMuted,
     marginTop: spacing.md,
     marginBottom: spacing.xs,
@@ -220,17 +225,23 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },
+  rowMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
   icon: { width: 42, height: 42, borderRadius: radius.sm + 2, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1 },
-  title: { fontSize: 15, fontWeight: '700', color: colors.text },
-  summary: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  meta: { fontSize: 11, color: colors.textMuted, marginTop: 4, fontWeight: '600' },
+  title: { fontSize: 15, fontFamily: 'Roboto_700Bold', color: colors.text },
+  summary: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  meta: { fontSize: 11, color: colors.textMuted, marginTop: 4, fontFamily: 'Roboto_500Medium' },
   thumb: { width: 44, height: 44, borderRadius: radius.sm + 2 },
   heart: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { marginTop: spacing.lg },

@@ -22,7 +22,7 @@ const createStyles = (colors: Palette) =>
       borderColor: colors.border,
       maxWidth: 140,
     },
-    badgeText: { fontSize: 13, fontWeight: '700', color: colors.text, flexShrink: 1 },
+    badgeText: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, flexShrink: 1 },
     backdrop: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.45)',
@@ -40,7 +40,7 @@ const createStyles = (colors: Palette) =>
     },
     sheetTitle: {
       fontSize: 15,
-      fontWeight: '800',
+      fontFamily: 'Roboto_700Bold',
       color: colors.text,
       marginBottom: spacing.sm,
     },
@@ -53,7 +53,7 @@ const createStyles = (colors: Palette) =>
       borderRadius: radius.sm,
     },
     rowActive: { backgroundColor: colors.primarySoft },
-    rowName: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.text },
+    rowName: { flex: 1, fontSize: 15, fontFamily: 'Roboto_700Bold', color: colors.text },
     rowNameActive: { color: colors.primaryDeep },
     pressed: { opacity: 0.7 },
   });

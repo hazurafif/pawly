@@ -7,6 +7,7 @@ function fakeStore(overrides: Partial<SyncStore> = {}): SyncStore {
     getCursor: vi.fn(async () => null),
     setCursor: vi.fn(async () => {}),
     getDirtyRows: vi.fn(async () => []),
+    getRow: vi.fn(async () => null),
     clearDirty: vi.fn(async () => {}),
     applyChanges: vi.fn(async () => ({ maxUpdatedAt: null })),
     getPendingPhotos: vi.fn(async () => []),
@@ -55,6 +56,80 @@ describe('SyncClient', () => {
     ]);
     expect(transport.pull).toHaveBeenCalledWith(null);
     expect(result.pushed).toBe(1);
+  });
+
+  it('attaches clean parent rows to dirty children so the server can satisfy FK checks', async () => {
+    const pet = petRow('p1', '2026-06-01T00:00:00.000Z');
+    const store = fakeStore({
+      getDirtyRows: vi.fn(async () => [
+        {
+          table: 'events' as TableName,
+          row: {
+            id: 'e1', pet_id: 'p1', kind: 'feed', title: null, text: null,
+            occurred_at: '2026-07-02T00:00:00.000Z', next_due_at: null, data: null,
+            favorite: 0, created_at: '2026-07-02T00:00:00.000Z',
+            updated_at: '2026-07-02T00:00:00.000Z', deleted_at: null,
+          },
+        },
+        {
+          table: 'reminder_rules' as TableName,
+          row: {
+            id: 'r1', pet_id: 'p1', title: 'Rabies', kind: 'vaccine',
+            due: '2026-09-01T00:00:00.000Z', repeat: 'once', dose: null, note: null,
+            created_at: '2026-07-28T00:00:00.000Z', updated_at: '2026-07-28T00:00:00.000Z',
+            deleted_at: null,
+          },
+        },
+        {
+          table: 'photos' as TableName,
+          row: {
+            id: 'ph1', event_id: 'e1', taken_at: '2026-07-02T00:00:00.000Z',
+            content_type: 'image/jpeg', created_at: '2026-07-02T00:00:00.000Z',
+            updated_at: '2026-07-02T00:00:00.000Z', deleted_at: null,
+          },
+        },
+      ]),
+      // p1 is clean locally (never dirty), so only getRow can surface it.
+      getRow: vi.fn(async (table: TableName) =>
+        table === 'pets' ? pet : table === 'events' ? {
+          id: 'e1', pet_id: 'p1', kind: 'photo', title: null, text: null,
+          occurred_at: '2026-07-02T00:00:00.000Z', next_due_at: null, data: null,
+          favorite: 0, created_at: '2026-07-02T00:00:00.000Z',
+          updated_at: '2026-07-02T00:00:00.000Z', deleted_at: null,
+        } : null
+      ),
+    });
+    const transport = fakeTransport();
+    const client = new SyncClient(store, transport);
+
+    await client.sync();
+
+    const pushArg = (transport.push as ReturnType<typeof vi.fn>).mock.calls[0][0] as Changes;
+    expect(pushArg.pets.map((r) => r.id)).toEqual(['p1']); // deduped: once for event, once for rule, once via photo's event
+    expect(pushArg.events.map((r) => r.id)).toEqual(['e1']);
+    expect(pushArg.photos.map((r) => r.id)).toEqual(['ph1']);
+    expect(pushArg.reminder_rules.map((r) => r.id)).toEqual(['r1']);
+    // only the dirty rows are cleared; the attached parents stay clean
+    expect(store.clearDirty).toHaveBeenCalledWith([
+      { table: 'events', id: 'e1', updatedAt: '2026-07-02T00:00:00.000Z' },
+      { table: 'reminder_rules', id: 'r1', updatedAt: '2026-07-28T00:00:00.000Z' },
+      { table: 'photos', id: 'ph1', updatedAt: '2026-07-02T00:00:00.000Z' },
+    ]);
+  });
+
+  it('pushes a dirty pet untouched when its row has no references', async () => {
+    const store = fakeStore({
+      getDirtyRows: vi.fn(async () => [{ table: 'pets' as TableName, row: petRow('p1', '2026-07-01T00:00:00.000Z') }]),
+    });
+    const transport = fakeTransport();
+    const client = new SyncClient(store, transport);
+
+    await client.sync();
+
+    const pushArg = (transport.push as ReturnType<typeof vi.fn>).mock.calls[0][0] as Changes;
+    expect(pushArg.pets).toHaveLength(1);
+    expect(pushArg.events).toHaveLength(0);
+    expect(store.getRow).not.toHaveBeenCalled();
   });
 
   it('keeps dirty rows and does not pull when push fails (server down / 4xx)', async () => {

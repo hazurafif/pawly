@@ -28,8 +28,48 @@ export class SyncClient {
     const changes: Changes = {
       pets: [], events: [], photos: [], reminder_rules: [],
     };
+    const seen = new Set<string>();
+    const add = (table: TableName, row: Row & { id: string }) => {
+      const key = `${table}:${row.id}`;
+      if (seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      changes[table].push(row);
+    };
     for (const d of dirty) {
-      changes[d.table].push(d.row);
+      add(d.table, d.row);
+      // Dirty children must carry their ancestors: the server may be
+      // missing the parent (fresh/reset server, restored backup, seeded
+      // or pre-existing local data, multi-device divergence). Without it
+      // the push commit fails its FK checks with HTTP 500, forever.
+      const petId = d.row.pet_id as string | null | undefined;
+      if (d.table === 'events' && petId) {
+        const pet = await this.store.getRow('pets', petId);
+        if (pet) {
+          add('pets', pet);
+        }
+      } else if (d.table === 'reminder_rules' && petId) {
+        const pet = await this.store.getRow('pets', petId);
+        if (pet) {
+          add('pets', pet);
+        }
+      } else if (d.table === 'photos') {
+        const eventId = d.row.event_id as string | null | undefined;
+        if (eventId) {
+          const ev = await this.store.getRow('events', eventId);
+          if (ev) {
+            add('events', ev);
+            const evPetId = ev.pet_id as string | null | undefined;
+            if (evPetId) {
+              const pet = await this.store.getRow('pets', evPetId);
+              if (pet) {
+                add('pets', pet);
+              }
+            }
+          }
+        }
+      }
     }
     await this.transport.push(changes); // throws → caller keeps dirty rows
     await this.store.clearDirty(dirty.map((d) => ({ table: d.table, id: d.row.id, updatedAt: d.row.updated_at as string })));

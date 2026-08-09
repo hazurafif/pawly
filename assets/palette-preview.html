@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pawly — Slate &amp; Stone palette</title>
+<style>
+  :root {
+    --page-bg: #171719;
+    --page-text: #F2F2F3;
+    --muted: #A0A0A6;
+    --card-bg: #1F1F22;
+    --border: #323237;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--page-bg);
+    color: var(--page-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    padding: 48px 24px 80px;
+    line-height: 1.45;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  header { margin-bottom: 40px; }
+  header h1 { font-size: 28px; letter-spacing: -0.02em; }
+  header p { color: var(--muted); margin-top: 8px; font-size: 15px; max-width: 680px; }
+  .badge {
+    display: inline-block; background: #4A6DA7; color: #fff; font-size: 11px;
+    font-weight: 700; padding: 3px 10px; border-radius: 999px; margin-bottom: 14px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  section { margin-bottom: 44px; }
+  h2 {
+    font-size: 17px; font-weight: 700; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2 .n { color: #7B96C4; font-size: 12px; font-weight: 800; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .swatch { border-radius: 16px; overflow: hidden; background: var(--card-bg); border: 1px solid var(--border); }
+  .swatch .color { height: 88px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .swatch .color .aa { font-size: 26px; font-weight: 800; padding: 0 8px; border-radius: 8px; }
+  .swatch .meta { padding: 10px 12px; }
+  .swatch .name { font-size: 13px; font-weight: 700; }
+  .swatch .role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .swatch .hex { font-size: 11px; color: var(--muted); margin-top: 5px; font-family: ui-monospace, Menlo, monospace; }
+  .swatch .ratio { font-size: 10px; margin-top: 5px; font-weight: 700; }
+  .ratio.pass { color: #6FCF97; }
+  .ratio.fail { color: #E6634F; }
+  .old { text-decoration: line-through; opacity: 0.65; }
+  /* mockup */
+  .mockup-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone {
+    width: 320px; background: #F6F6F7; color: #1C1C1E; border-radius: 36px;
+    border: 1px solid #3a3a3f; box-shadow: 0 30px 80px rgba(0,0,0,.55); overflow: hidden;
+    flex-shrink: 0;
+  }
+  .phone .screen { padding: 20px 18px 84px; position: relative; }
+  .phone .status { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #1C1C1E; margin-bottom: 14px; }
+  .phone h3 { font-size: 19px; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .phone .hello { font-size: 12px; color: #6B6B70; margin-bottom: 14px; }
+  .petrow { display: flex; gap: 8px; margin-bottom: 14px; }
+  .pet {
+    display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #E5E5E8;
+    border-radius: 999px; padding: 4px 12px 4px 4px; font-size: 12px; font-weight: 700;
+  }
+  .pet.active { background: #E9EEF5; border-color: #4A6DA7; color: #33507C; }
+  .pet .dot { width: 22px; height: 22px; border-radius: 999px; background: #E9EEF5; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .card { background: #fff; border-radius: 22px; padding: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.05); margin-bottom: 12px; }
+  .card h4 { font-size: 12px; color: #6B6B70; font-weight: 600; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .q {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border-radius: 14px; padding: 10px 4px; font-size: 10px; font-weight: 700; color: #1C1C1E;
+  }
+  .q .ic { width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #3D5C8E; color: #fff; font-weight: 700; font-size: 14px; border-radius: 18px; padding: 12px; box-shadow: 0 4px 10px rgba(61,92,142,.25); }
+  .entries .row { display: flex; gap: 10px; padding: 8px 0; align-items: center; }
+  .entries .row + .row { border-top: 1px solid #E5E5E8; }
+  .eic { width: 30px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  .row .txt { flex: 1; }
+  .row .txt .t1 { font-size: 13px; font-weight: 700; }
+  .row .txt .t2 { font-size: 11px; color: #6B6B70; }
+  .row .time { font-size: 11px; color: #6B6B70; }
+  .fab {
+    position: absolute; right: 18px; bottom: 18px; width: 52px; height: 52px; border-radius: 999px;
+    background: #3D5C8E; display: flex; align-items: center; justify-content: center; font-size: 22px;
+    color: #fff; box-shadow: 0 8px 16px rgba(61,92,142,.3);
+  }
+  .tabbar {
+    position: absolute; left: 14px; right: 14px; bottom: 14px; height: 58px; border-radius: 20px;
+    background: rgba(255,255,255,.80); border: 1px solid rgba(255,255,255,.50);
+    box-shadow: 0 8px 20px rgba(0,0,0,.06);
+    display: flex; align-items: center; justify-content: space-around; padding: 0 8px;
+  }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; font-weight: 700; color: #6B6B70; }
+  .tab.active { color: #4A6DA7; }
+  .tab .ti { font-size: 17px; }
+  /* dark mockup */
+  .phone.dark { background: #171719; color: #F2F2F3; }
+  .phone.dark .status { color: #F2F2F3; }
+  .phone.dark .hello { color: #A0A0A6; }
+  .phone.dark .card { background: #1F1F22; box-shadow: none; }
+  .phone.dark .card h4 { color: #A0A0A6; }
+  .phone.dark .pet { background: #1F1F22; border-color: #323237; color: #F2F2F3; }
+  .phone.dark .pet.active { background: rgba(123,150,196,.14); border-color: #7B96C4; color: #A9BCDD; }
+  .phone.dark .pet .dot { background: rgba(123,150,196,.14); }
+  .phone.dark .q { color: #F2F2F3; }
+  .phone.dark .btn { background: #5E7BAE; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
+  .phone.dark .entries .row + .row { border-top-color: #323237; }
+  .phone.dark .row .txt .t2, .phone.dark .row .time { color: #A0A0A6; }
+  .phone.dark .tabbar { background: rgba(31,31,34,.72); border-color: rgba(31,31,34,.4); box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+  .phone.dark .tab { color: #A0A0A6; }
+  .phone.dark .tab.active { color: #7B96C4; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="badge">Pawly · New direction</span>
+  <h1>Slate &amp; Stone — neutral &amp; simple</h1>
+  <p>Cool grays instead of warm cream. One quiet slate-blue accent. Muted event colors that recede into the UI. Same token names, drop-in swap — contrast ratios computed live against dark/light text (pass = ≥ 4.5:1).</p>
+</header>
+
+<section>
+  <h2><span class="n">01</span>Neutrals</h2>
+  <p class="sub">True neutral scale — the whole app recedes so photos and entries stand out.</p>
+  <div class="grid" id="neutrals"></div>
+</section>
+
+<section>
+  <h2><span class="n">02</span>Accent (slate blue)</h2>
+  <p class="sub">Used sparingly: active tab, buttons, FAB, links. Everything else is gray.</p>
+  <div class="grid" id="accent"></div>
+</section>
+
+<section>
+  <h2><span class="n">03</span>Status colors</h2>
+  <p class="sub">Functional but muted — no candy tones. Soft / base / deep per status.</p>
+  <div class="grid" id="status"></div>
+</section>
+
+<section>
+  <h2><span class="n">04</span>Event kind colors</h2>
+  <p class="sub">Same hue language as before, desaturated one step so the UI stays quiet.</p>
+  <div class="grid" id="kinds"></div>
+</section>
+
+<section>
+  <h2><span class="n">05</span>In context — light</h2>
+  <p class="sub">Home screen mockup using only new tokens.</p>
+  <div class="mockup-row">
+    <div class="phone">
+      <div class="screen">
+        <div class="status"><span>9:41</span><span>🔋</span></div>
+        <h3>Good morning ☀️</h3>
+        <div class="hello">What's new with your crew?</div>
+        <div class="petrow">
+          <div class="pet active"><span class="dot">🐱</span>Momo</div>
+          <div class="pet"><span class="dot">🐶</span>Biscuit</div>
+        </div>
+        <div class="card">
+          <h4>Quick log</h4>
+          <div class="quick" id="quick"></div>
+        </div>
+        <div class="card entries" id="entries"></div>
+        <div class="btn">＋ &nbsp;Log an entry</div>
+        <div class="fab">＋</div>
+        <div class="tabbar">
+          <div class="tab active"><span class="ti">🏠</span>Home</div>
+          <div class="tab"><span class="ti">📖</span>Journal</div>
+          <div class="tab"><span class="ti">❤️</span>Health</div>
+          <div class="tab"><span class="ti">🖼️</span>Memories</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">06</span>In context — dark (phase 2)</h2>
+  <p class="sub">Same tokens, dark variants: neutral charcoal.</p>
+  <div class="mockup-row">
+    <div class="phone dark">
+      <div class="screen">
+        <div class="status"><span>9:41</span><span>🔋</span></div>
+        <h3>Good morning ☀️</h3>
+        <div class="hello">What's new with your crew?</div>
+        <div class="petrow">
+          <div class="pet active"><span class="dot">🐱</span>Momo</div>
+          <div class="pet"><span class="dot">🐶</span>Biscuit</div>
+        </div>
+        <div class="card">
+          <h4>Quick log</h4>
+          <div class="quick" id="quick-dark"></div>
+        </div>
+        <div class="card entries" id="entries-dark"></div>
+        <div class="btn">＋ &nbsp;Log an entry</div>
+        <div class="fab">＋</div>
+        <div class="tabbar">
+          <div class="tab active"><span class="ti">🏠</span>Home</div>
+          <div class="tab"><span class="ti">📖</span>Journal</div>
+          <div class="tab"><span class="ti">❤️</span>Health</div>
+          <div class="tab"><span class="ti">🖼️</span>Memories</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>Contrast ratios computed live with the WCAG 2.x relative-luminance formula. Old amber values shown struck-through where meaningful.</footer>
+</div>
+
+<script>
+// ---------- WCAG helpers ----------
+function lum(hex) {
+  const c = hex.replace('#','');
+  const [r,g,b] = [0,2,4].map(i => parseInt(c.slice(i,i+2),16)/255).map(v =>
+    v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4));
+  return 0.2126*r + 0.7152*g + 0.0722*b;
+}
+function ratio(a,b) {
+  const [l1,l2] = [lum(a),lum(b)].sort((x,y)=>y-x);
+  return (l1+0.05)/(l2+0.05);
+}
+function f(ratio) { return ratio >= 4.5 ? 'pass' : 'fail'; }
+
+// ---------- swatch builder ----------
+function swatch({ name, role, hex, old, white = false, black = false }) {
+  const r = ratio(hex, white ? '#ffffff' : '#1C1C1E');
+  const r2 = ratio(hex, black ? '#1C1C1E' : '#ffffff');
+  const el = document.createElement('div');
+  el.className = 'swatch';
+  el.innerHTML = `
+    <div class="color" style="background:${hex}">
+      <span class="aa" style="color:${white ? '#fff' : '#1C1C1E'}">Aa</span>
+      <span class="aa" style="color:${black ? '#1C1C1E' : '#fff'}">Aa</span>
+    </div>
+    <div class="meta">
+      <div class="name">${name}</div>
+      <div class="role">${role}</div>
+      <div class="hex">${hex}${old ? ' &nbsp;<span class="old">'+old+'</span>' : ''}</div>
+      <div class="ratio ${f(r)}">on dark text ${r.toFixed(2)}:1 ${f(r)}</div>
+      <div class="ratio ${f(r2)}">on light text ${r2.toFixed(2)}:1 ${f(r2)}</div>
+    </div>`;
+  return el;
+}
+function render(id, items) {
+  const g = document.getElementById(id);
+  items.forEach(i => g.appendChild(swatch(i)));
+}
+
+// ---------- palette data ----------
+render('neutrals', [
+  { name:'background', role:'App background', hex:'#F6F6F7', old:'#FAF7F2', black:true },
+  { name:'surface', role:'Cards · sheets', hex:'#FFFFFF', old:'#FFFFFF', black:true },
+  { name:'surfaceMuted', role:'Soft fills · empty states', hex:'#EFEFF1', old:'#F3EDE3', black:true },
+  { name:'text', role:'Primary text', hex:'#1C1C1E', old:'#262219', white:true },
+  { name:'textMuted', role:'Secondary text', hex:'#6B6B70', old:'#766E64' },
+  { name:'border', role:'Hairlines · chips', hex:'#E5E5E8', old:'#EAE2D4', black:true },
+  { name:'glass', role:'Tab bar fill', hex:'#FFFFFFCC', old:'#FFFFFFC7' },
+  { name:'glassBorder', role:'Tab bar border', hex:'#FFFFFF80', old:'#FFFFFF6B' },
+]);
+
+render('accent', [
+  { name:'primarySoft', role:'Chips · avatar bg · badges', hex:'#E9EEF5', old:'#FEF0DF', black:true },
+  { name:'primary', role:'Icons · active tab · links', hex:'#4A6DA7', old:'#D97706' },
+  { name:'primaryDark', role:'Buttons · FAB fills', hex:'#3D5C8E', old:'#B45309' },
+  { name:'primaryDeep', role:'Text on soft', hex:'#33507C', old:'#92400E', white:true },
+]);
+
+render('status', [
+  { name:'success', role:'Icons · chips', hex:'#4E8F6A', old:'#3E9B6B' },
+  { name:'successSoft', role:'Badge bg', hex:'#E8F2EC', old:'#E3F4EA', black:true },
+  { name:'successDeep', role:'Text on soft', hex:'#2E6B4A', old:'#1B5E38', white:true },
+  { name:'warning', role:'Icons · chips', hex:'#B08A3E', old:'#B97A1B' },
+  { name:'warningSoft', role:'Badge bg', hex:'#F5EFE0', old:'#FBF1DC', black:true },
+  { name:'warningDeep', role:'Text on soft', hex:'#7A5F26', old:'#7C5210', white:true },
+  { name:'error', role:'Icons · danger buttons', hex:'#BC4B43', old:'#D9483B' },
+  { name:'errorSoft', role:'Badge bg', hex:'#F7E8E7', old:'#FBE9E7', black:true },
+  { name:'errorDeep', role:'Text on soft', hex:'#93322C', old:'#9C2B23', white:true },
+]);
+
+const KIND_ICONS = {
+  feed:'🍽️', water:'💧', walk:'🚶', potty:'🚽', mood:'😊', photo:'📷',
+  milestone:'⭐', task:'✅', checkin:'📋', symptom:'🩺', med_given:'🩹',
+  vaccine:'🛡️', visit:'🏥', weight:'⚖️', vet_bill:'🧾',
+};
+const KINDS = [
+  ['feed','Care · food', '#B08446', '#D9923B'], ['water','Care · drink', '#5F8FA8', '#5B9FC4'],
+  ['walk','Care · exercise', '#6F9966', '#74A85F'], ['potty','Care · litter', '#8F7B5C', '#A0835A'],
+  ['mood','Care · feeling', '#B57A93', '#CF6F9E'], ['photo','Care · memory', '#A482A8', '#C98BB8'],
+  ['milestone','Care · occasion', '#B08446', '#D9923B'], ['task','Care · chore', '#4F8F7D', '#4FA38F'],
+  ['checkin','Health · exam', '#7A7FAE', '#8479C2'], ['symptom','Health · symptom', '#B85A54', '#D9534C'],
+  ['med_given','Health · meds', '#5F7FB0', '#5F8FD4'], ['vaccine','Health · vaccine', '#4E8F6A', '#3F9D76'],
+  ['visit','Health · vet visit', '#4C8A84', '#3E9185'], ['weight','Health · weight', '#837FAF', '#8F7FC4'],
+  ['vet_bill','Health · billing', '#7E7E84', '#7E786E'],
+];
+render('kinds', KINDS.map(([name, role, hex, old]) => ({ name, role, hex, old })));
+
+// ---------- mockups ----------
+function quickLog(container, dark) {
+  const kinds = ['feed','water','walk','potty'];
+  container.innerHTML = kinds.map(k => {
+    const meta = KINDS.find(x => x[0] === k);
+    const bg = meta[2] + (dark ? '26' : '22');
+    return `<div class="q"><span class="ic" style="background:${bg}">${KIND_ICONS[k]}</span>${k}</div>`;
+  }).join('');
+}
+quickLog(document.getElementById('quick'), false);
+quickLog(document.getElementById('quick-dark'), true);
+
+const ENTRIES = [
+  ['feed', 'Breakfast', 'Momo · 07:32', '07:32'],
+  ['walk', 'Morning walk', 'Biscuit · 30 min', '08:15'],
+  ['med_given', 'Gabapentin', 'Momo · 1 dose', 'Yesterday'],
+  ['milestone', 'Gotcha day!', 'Biscuit · 2 years', 'Aug 2'],
+];
+function entries(container, dark) {
+  container.innerHTML = '<h4>Today</h4>' + ENTRIES.map(([k,t1,t2,time]) => {
+    const meta = KINDS.find(x => x[0] === k);
+    const bg = meta[2] + (dark ? '26' : '22');
+    return `<div class="row"><span class="eic" style="background:${bg}">${KIND_ICONS[k]}</span>
+      <div class="txt"><div class="t1">${t1}</div><div class="t2">${t2}</div></div>
+      <div class="time">${time}</div></div>`;
+  }).join('');
+}
+entries(document.getElementById('entries'), false);
+entries(document.getElementById('entries-dark'), true);
+</script>
+</body>
+</html>

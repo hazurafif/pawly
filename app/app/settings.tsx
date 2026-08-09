@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -21,10 +21,13 @@ import { discoverServerUrl } from '../src/lib/server';
 import { confirmAction } from '../src/lib/confirm';
 import { setAppLanguage } from '../src/i18n';
 import { Button, Card, EmptyState, SectionHeader } from '../src/components/ui';
-import { colors, radius, spacing } from '../src/lib/theme';
+import { radius, spacing, type Palette } from '../src/lib/theme';
+import { useAppColors } from '../src/hooks/useTheme';
 
 export default function SettingsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { status, syncNow } = useSync();
   const { pets, activePet } = useActivePet();
@@ -189,20 +192,29 @@ export default function SettingsScreen() {
       {/* Language */}
       <SectionHeader icon="language-outline" title={t('settings.language')} />
       <Card style={styles.langRow}>
-        {(['id', 'en'] as const).map((lang) => (
-          <Pressable
-            key={lang}
-            onPress={() => {
-              void setLanguage(lang);
-              void setAppLanguage(lang);
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: true }}
-            style={({ pressed }) => [styles.langButton, pressed && styles.pressed]}
-          >
-            <Text style={styles.langText}>{lang === 'id' ? 'Bahasa Indonesia' : 'English'}</Text>
-          </Pressable>
-        ))}
+        {(['id', 'en'] as const).map((lang) => {
+          const selected = i18n.language === lang;
+          return (
+            <Pressable
+              key={lang}
+              onPress={() => {
+                void setLanguage(lang);
+                void setAppLanguage(lang);
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              style={({ pressed }) => [
+                styles.langButton,
+                selected && styles.langButtonActive,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.langText, selected && styles.langTextActive]}>
+                {lang === 'id' ? 'Bahasa Indonesia' : 'English'}
+              </Text>
+            </Pressable>
+          );
+        })}
       </Card>
 
       <Text style={styles.version}>{t('settings.about')} · Pawly 2.0</Text>
@@ -210,7 +222,7 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
   petRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -224,33 +236,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   petInfo: { flex: 1 },
-  petName: { fontSize: 15, fontWeight: '700', color: colors.text },
-  petSub: { fontSize: 12, color: colors.textMuted },
+  petName: { fontSize: 15, fontFamily: 'Roboto_700Bold', color: colors.text },
+  petSub: { fontFamily: 'Roboto_400Regular', fontSize: 12, color: colors.textMuted },
   deleteIcon: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   syncRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   dot: { width: 10, height: 10, borderRadius: radius.pill },
-  syncText: { fontSize: 14, color: colors.textMuted, fontWeight: '600' },
-  label: { fontSize: 13, fontWeight: '700', color: colors.text, marginTop: spacing.md, marginBottom: spacing.xs },
-  hint: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.md },
+  syncText: { fontSize: 14, color: colors.textMuted, fontFamily: 'Roboto_500Medium' },
+  label: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, marginTop: spacing.md, marginBottom: spacing.xs },
+  hint: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted, marginBottom: spacing.md },
   input: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.sm,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
-    fontSize: 15,
+    fontFamily: 'Roboto_400Regular', fontSize: 15,
     color: colors.text,
     minHeight: 46,
     marginBottom: spacing.sm,
   },
-  error: { color: colors.errorDeep, fontSize: 13, marginBottom: spacing.sm },
+  error: { color: colors.errorDeep, fontFamily: 'Roboto_400Regular', fontSize: 13, marginBottom: spacing.sm },
   langRow: { flexDirection: 'row', gap: spacing.sm },
   langButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  langText: { fontSize: 14, fontWeight: '600', color: colors.text },
-  version: { textAlign: 'center', color: colors.textMuted, fontSize: 12, marginTop: spacing.xl },
+  langButtonActive: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  langText: { fontSize: 14, fontFamily: 'Roboto_500Medium', color: colors.textMuted },
+  langTextActive: { color: colors.primaryDeep, fontFamily: 'Roboto_700Bold' },
+  version: { textAlign: 'center', color: colors.textMuted, fontFamily: 'Roboto_400Regular', fontSize: 12, marginTop: spacing.xl },
   pressed: { opacity: 0.7 },
 });
