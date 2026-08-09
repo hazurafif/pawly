@@ -15,7 +15,8 @@
     "done": "Selesai",
     "search": "Cari",
     "back": "Kembali",
-    "selectDate": "Pilih tanggal"
+    "selectDate": "Pilih tanggal",
+    "switchPet": "Ganti hewan"
   },
   "tabs": {
     "home": "Beranda",

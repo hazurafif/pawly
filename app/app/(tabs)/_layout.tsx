@@ -1,14 +1,44 @@
+import { useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius, shadow, spacing } from '../../src/lib/theme';
+import { PetBadge } from '../../src/components/PetBadge';
+import { radius, shadow, spacing, type Palette } from '../../src/lib/theme';
+import { useAppColors } from '../../src/hooks/useTheme';
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
+
+  // Settings shortcut used by every tab header.
+  const settingsButton = () => (
+    <Link href="/settings" asChild>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t('settings.title')}
+        style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
+      >
+        <View style={styles.settingsBadge}>
+          <Ionicons name="settings-outline" size={20} color={colors.primary} />
+        </View>
+      </Pressable>
+    </Link>
+  );
+
+  // Journal/Health/Memories additionally show the active pet as a floating
+  // pill so you always know which pet you're logging into; tapping it
+  // switches pets.
+  const headerRightWithPetBadge = () => (
+    <View style={styles.headerRight}>
+      <PetBadge />
+      {settingsButton()}
+    </View>
+  );
 
   return (
     <Tabs
@@ -20,19 +50,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: [styles.tabBar, { bottom: Math.max(16, insets.bottom + 8) }],
         tabBarLabelStyle: { fontWeight: '600' },
-        headerRight: () => (
-          <Link href="/settings" asChild>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('settings.title')}
-              style={({ pressed }) => [styles.settingsButton, pressed && styles.settingsButtonPressed]}
-            >
-              <View style={styles.settingsBadge}>
-                <Ionicons name="settings-outline" size={20} color={colors.primary} />
-              </View>
-            </Pressable>
-          </Link>
-        ),
+        headerRight: settingsButton,
       }}
     >
       <Tabs.Screen
@@ -48,6 +66,7 @@ export default function TabLayout() {
         name="journal"
         options={{
           title: t('tabs.journal'),
+          headerRight: () => headerRightWithPetBadge(),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'book' : 'book-outline'} size={size} color={color} />
           ),
@@ -57,6 +76,7 @@ export default function TabLayout() {
         name="health"
         options={{
           title: t('tabs.health'),
+          headerRight: () => headerRightWithPetBadge(),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'heart' : 'heart-outline'} size={size} color={color} />
           ),
@@ -66,6 +86,7 @@ export default function TabLayout() {
         name="memories"
         options={{
           title: t('tabs.memories'),
+          headerRight: () => headerRightWithPetBadge(),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color} />
           ),
@@ -75,7 +96,7 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   tabBar: {
     position: 'absolute',
     left: spacing.md,
@@ -93,6 +114,12 @@ const styles = StyleSheet.create({
   },
   settingsButton: { marginRight: 16 },
   settingsButtonPressed: { opacity: 0.6 },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginRight: 8,
+  },
   settingsBadge: {
     width: 36,
     height: 36,

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { useRepoData } from '../src/hooks/useRepoData';
@@ -19,21 +19,23 @@ import { goBack } from '../src/lib/navigation';
 import { confirmAction } from '../src/lib/confirm';
 import { logPhoto } from '../src/lib/entries';
 import { newId } from '../src/lib/id';
-import { Button, Card } from '../src/components/ui';
+import { parseLocalDateInput } from '../src/lib/format';
+import { Button, Card, ChipGroup } from '../src/components/ui';
+import { DateField } from '../src/components/DateField';
 import type { Pet } from '../src/db/types';
-import { colors, radius, spacing } from '../src/lib/theme';
+import { radius, spacing, type Palette } from '../src/lib/theme';
+import { useAppColors } from '../src/hooks/useTheme';
 
 const SEXES = ['male', 'female', 'unknown'] as const;
 const NEUTERED = ['yes', 'no', 'unknown'] as const;
 
-function chipOptions<T extends string>(t: (k: string) => string, prefix: string, values: readonly T[]) {
-  return values.map((v) => ({
-    value: v,
-    label: t(`${prefix}${v.charAt(0).toUpperCase()}${v.slice(1)}`),
-  }));
+function labelsFor<T extends string>(t: (k: string) => string, prefix: string, values: readonly T[]) {
+  return values.map((v) => ({ value: v, label: t(`${prefix}${v.charAt(0).toUpperCase()}${v.slice(1)}`) }));
 }
 
 export default function PetFormScreen() {
+  const colors = useAppColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
@@ -53,6 +55,7 @@ export default function PetFormScreen() {
   const [story, setStory] = useState('');
   const [vetClinic, setVetClinic] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [existingPhotoUri, setExistingPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   // A stale-render double tap runs save twice and queues two GO_BACKs —
@@ -74,6 +77,15 @@ export default function PetFormScreen() {
       setNeutered(existing.is_neutered);
       setStory(existing.story ?? '');
       setVetClinic(existing.vet_clinic ?? '');
+      // Show the current photo when editing so it can be replaced.
+      void getRepository()
+        .then((r) => r.latestPhotoForPet(existing.id))
+        .then((p) => {
+          if (p?.local_uri) {
+            setPhotoUri(p.local_uri);
+            setExistingPhotoUri(p.local_uri);
+          }
+        });
     }
   }, [existing, seededPetId]);
 
@@ -129,7 +141,8 @@ export default function PetFormScreen() {
         deleted_at: null,
       };
       await repo.upsertLocal('pets', row);
-      if (photoUri && !editing) {
+      // Log a photo for new pets, or when the editing user picked a new one.
+      if (photoUri && photoUri !== existingPhotoUri) {
         await logPhoto(repo, row.id, { uri: photoUri });
       }
       goBack(router);
@@ -155,29 +168,10 @@ export default function PetFormScreen() {
     });
   };
 
-  const pickerRow = (values: { value: string; label: string }[], selected: string, onSelect: (v: string) => void) => (
-    <View style={styles.chipRow}>
-      {values.map((v) => (
-        <Pressable
-          key={v.value}
-          onPress={() => onSelect(v.value)}
-          accessibilityRole="button"
-          accessibilityState={{ selected: v.value === selected }}
-          style={({ pressed }) => [
-            styles.chip,
-            v.value === selected && styles.chipActive,
-            pressed && styles.pressed,
-          ]}
-        >
-          <Text style={[styles.chipText, v.value === selected && styles.chipTextActive]}>{v.label}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Text style={styles.heading}>{editing ? t('petForm.title') : t('petForm.addPet')}</Text>
+    <>
+      <Stack.Screen options={{ title: editing ? t('petForm.title') : t('petForm.addPet') }} />
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
       {/* Photo */}
       <Pressable
@@ -207,35 +201,21 @@ export default function PetFormScreen() {
         />
 
         <Text style={styles.label}>{t('petForm.species')}</Text>
-        {pickerRow(chipOptions(t, 'petForm.species', ['cat', 'dog', 'other'] as const), species, setSpecies)}
+        <ChipGroup options={labelsFor(t, 'petForm.species', ['cat', 'dog', 'other'] as const)} value={species} onSelect={setSpecies} />
 
         <Text style={styles.label}>{t('petForm.sex')}</Text>
-        {pickerRow(chipOptions(t, 'petForm.sex', SEXES), sex, setSex)}
+        <ChipGroup options={labelsFor(t, 'petForm.sex', SEXES)} value={sex} onSelect={setSex} />
 
         <Text style={styles.label}>{t('petForm.birthDate')}</Text>
-        <TextInput
-          value={birthDate}
-          onChangeText={setBirthDate}
-          placeholder="2024-03-15"
-          placeholderTextColor={colors.textMuted}
-          style={styles.input}
-          accessibilityLabel={t('petForm.birthDate')}
-        />
+        <DateField value={birthDate} onChange={setBirthDate} accessibilityLabel={t('petForm.birthDate')} placeholder={t('common.selectDate')} />
         <Text style={styles.hint}>{t('petForm.birthDateHint')}</Text>
 
         <Text style={styles.label}>{t('petForm.rescueDate')}</Text>
-        <TextInput
-          value={rescueDate}
-          onChangeText={setRescueDate}
-          placeholder="2024-05-01"
-          placeholderTextColor={colors.textMuted}
-          style={styles.input}
-          accessibilityLabel={t('petForm.rescueDate')}
-        />
+        <DateField value={rescueDate} onChange={setRescueDate} accessibilityLabel={t('petForm.rescueDate')} placeholder={t('common.selectDate')} />
         <Text style={styles.hint}>{t('petForm.rescueDateHint')}</Text>
 
         <Text style={styles.label}>{t('petForm.neutered')}</Text>
-        {pickerRow(chipOptions(t, 'petForm.neutered', NEUTERED), neutered, setNeutered)}
+        <ChipGroup options={labelsFor(t, 'petForm.neutered', NEUTERED)} value={neutered} onSelect={setNeutered} />
 
         <Text style={styles.label}>{t('petForm.vetClinic')}</Text>
         <TextInput
@@ -259,16 +239,18 @@ export default function PetFormScreen() {
 
       <Button label={t('common.save')} onPress={() => void save()} disabled={saving} icon="checkmark" />
       {editing ? (
-        <Button label={t('common.delete')} onPress={remove} variant="danger" icon="trash-outline" />
+        <View style={styles.deleteWrap}>
+          <Button label={t('common.delete')} onPress={remove} variant="dangerGhost" icon="trash-outline" />
+        </View>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
-  heading: { fontSize: 22, fontWeight: '800', color: colors.text, marginVertical: spacing.md },
   photoButton: { alignItems: 'center', marginBottom: spacing.md },
   photoFallback: {
     width: 96,
@@ -293,18 +275,7 @@ const styles = StyleSheet.create({
     minHeight: 46,
   },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
-  chipRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  chip: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceMuted,
-    minHeight: 40,
-    justifyContent: 'center',
-  },
-  chipActive: { backgroundColor: colors.primaryDeep },
-  chipText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
-  chipTextActive: { color: colors.white },
   error: { color: colors.errorDeep, fontSize: 14, marginVertical: spacing.sm },
+  deleteWrap: { marginTop: spacing.sm },
   pressed: { opacity: 0.7 },
 });

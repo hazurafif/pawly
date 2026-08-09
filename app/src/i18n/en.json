@@ -15,7 +15,8 @@
     "done": "Done",
     "search": "Search",
     "back": "Back",
-    "selectDate": "Select date"
+    "selectDate": "Select date",
+    "switchPet": "Switch pet"
   },
   "tabs": {
     "home": "Home",

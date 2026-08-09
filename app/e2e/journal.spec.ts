@@ -23,6 +23,22 @@ test('entry-form kind picker groups every loggable kind by category', async ({ p
   await expect(page.getByText('Memories', { exact: true })).toBeVisible();
 });
 
+test('journal header shows the active pet badge and switches pets from it', async ({ page }) => {
+  // beforeEach already created Miko.
+  await createPet(page, 'Bella');
+  await page.goto('/journal');
+
+  // Active pet (newest, the default) shows as a floating pill in the header.
+  const badge = page.getByRole('button', { name: 'Switch pet', exact: true });
+  await expect(badge).toBeVisible();
+  await expect(badge).toContainText('Bella');
+
+  // Tap it, pick the other pet, and the badge follows.
+  await badge.click();
+  await page.getByRole('button', { name: 'Switch pet to Miko', exact: true }).click();
+  await expect(badge).toContainText('Miko');
+});
+
 test('entry-form has a date field', async ({ page }) => {
   await page.goto('/entry-form');
   await expect(page.getByLabel('Date')).toBeVisible();
