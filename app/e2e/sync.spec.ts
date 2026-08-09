@@ -3,7 +3,7 @@ import type { APIRequestContext, Page } from '@playwright/test';
 import { createPet, setEnglish } from './helpers';
 
 async function serverHasPet(request: APIRequestContext, name: string): Promise<boolean> {
-  const res = await request.get('http://localhost:8080/sync/pull');
+  const res = await request.get('http://localhost:8083/sync/pull');
   if (!res.ok()) {
     return false;
   }

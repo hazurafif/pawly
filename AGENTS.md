@@ -32,6 +32,8 @@ user to ask, and do not batch unrelated work into one commit.
 - `backend/` — Go server (cmd/main.go, internal/api, internal/store, internal/photos).
   SQLite via modernc (no CGO), data dir via `PAWLY_DATA_DIR` (default `./data`).
   Run locally: `go run ./cmd`; containers via `podman compose up -d` (docker-compose.yml).
+  The e2e stack is a separate compose project (`pawly-e2e`, ports 8083/8084,
+  tmpfs DB) — never point tests at the dev backend on :8080.
 - `app/` — Expo SDK 57 + expo-router app. `pnpm` only. See `app/AGENTS.md`.
 - `scripts/` — helper tooling (screenshots, test scripts).
 

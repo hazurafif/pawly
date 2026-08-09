@@ -10,14 +10,17 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:8082',
+    baseURL: 'http://localhost:8084',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'podman compose -f ../docker-compose.yml up -d',
-    url: 'http://localhost:8082',
+    // The full e2e stack: test backend on 8083 + app baked with the test
+    // URL. --build keeps the image's baked EXPO_PUBLIC_PAWLY_URL in sync
+    // with the test override.
+    command: 'podman compose -f ../docker-compose.yml -f ../docker-compose.test.yml up -d --build app backend',
+    url: 'http://localhost:8084',
     reuseExistingServer: true,
     timeout: 180_000,
   },

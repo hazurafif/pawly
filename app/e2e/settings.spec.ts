@@ -3,7 +3,7 @@ import { createPet, setEnglish } from './helpers';
 
 test('server address is prefilled from the baked .env URL', async ({ page }) => {
   await setEnglish(page);
-  await expect(page.getByLabel('Server address')).toHaveValue('http://localhost:8080');
+  await expect(page.getByLabel('Server address')).toHaveValue('http://localhost:8083');
 });
 
 test('language switches between English and Indonesian', async ({ page }) => {

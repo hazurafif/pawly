@@ -201,7 +201,7 @@ app bundle):
 ## Verify
 
 ```bash
-cd app && pnpm typecheck && pnpm test     # 16 files, 123 tests
+cd app && pnpm typecheck && pnpm test     # 17 files, 146 tests
 cd backend && go test ./...               # 43 tests incl. two-device convergence
 ```
 
@@ -218,25 +218,41 @@ and a two-device convergence scenario.
 
 ## Docker + Playwright E2E
 
-The whole stack dockerizes:
+The whole stack dockerizes. Two **separate** stacks run side by side — one
+for real use, one for tests — so automated tests never touch your data.
+
+| Stack | Project | Ports | Backend data | Used by |
+|---|---|---|---|---|
+| Dev | `pawly` | backend :8080 · web app :8082 | persistent volume `pawly-data` | the app on your phone/emulator (sync) + manual web build |
+| E2E | `pawly-e2e` | backend :8083 · web app :8084 | tmpfs, wiped before every test | Playwright (`pnpm test:e2e`) |
 
 ```bash
-podman compose up -d --build        # backend :8080, web app :8082
+# dev stack — backend with the persistent volume + web app baked to :8080
+podman compose up -d --build
+
+# e2e stack — fully isolated project on :8083/:8084 with an ephemeral DB
+podman compose -f docker-compose.yml -f docker-compose.test.yml up -d --build
 ```
 
-`app/Dockerfile` exports the Expo web build (the backend URL is baked in via
-the `EXPO_PUBLIC_PAWLY_URL` build arg, default `http://localhost:8080`) and
-serves it with nginx. `docker-compose.test.yml` runs the backend on an
-ephemeral tmpfs data dir so Playwright tests never contaminate each other.
+**Why the split:** `app/Dockerfile` exports a static Expo web build with the
+backend URL baked in (`EXPO_PUBLIC_PAWLY_URL` build arg). The e2e web bundle
+must point at the test backend — if it shared the dev backend, every test
+pet (Miko, Miko, Miko…) would sync into your real database and from there
+into your phone. `docker-compose.test.yml` therefore declares its own
+compose project (`name: pawly-e2e`), maps the test backend to :8083 with a
+tmpfs data dir (recreated empty before every test), and bakes the test app
+to `http://localhost:8083`. The phone/emulator app only ever talks to the
+dev backend on :8080.
 
-Full browser E2E (23 tests across onboarding, pet form, journal, health,
+Full browser E2E (47 tests across onboarding, pet form, journal, health,
 memories, settings, and sync — running against the dockerized app):
 
 ```bash
 cd app && pnpm exec playwright install chromium
-podman compose up -d --build
 pnpm test:e2e
 ```
 
-The suite auto-resets the backend before every test and verifies end-to-end
-sync by pulling the pushed rows back from the server API.
+The suite auto-starts the e2e stack (rebuilding the app image so the baked
+URL stays in sync with the test backend), resets the backend before every
+test, and verifies end-to-end sync by pulling the pushed rows back from the
+server API.

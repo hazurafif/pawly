@@ -26,7 +26,7 @@ function resetBackend(): void {
     // teardown, leaving stale data.)
     try {
       const out = execSync(
-        `curl -sf -m 3 'http://localhost:8080/sync/pull'`,
+        `curl -sf -m 3 'http://localhost:8083/sync/pull'`,
         { stdio: 'pipe', encoding: 'utf8' }
       );
       const changes = JSON.parse(out).changes ?? {};
@@ -45,7 +45,7 @@ function waitForHealth(): void {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
     try {
-      const res = execSync('curl -sf -m 2 http://localhost:8080/healthz', { stdio: 'pipe' });
+      const res = execSync('curl -sf -m 2 http://localhost:8083/healthz', { stdio: 'pipe' });
       if (res.toString().includes('ok')) {
         return;
       }
