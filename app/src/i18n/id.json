@@ -14,7 +14,8 @@
     "logged": "Tercatat {{time}}",
     "done": "Selesai",
     "search": "Cari",
-    "back": "Kembali"
+    "back": "Kembali",
+    "selectDate": "Pilih tanggal"
   },
   "tabs": {
     "home": "Beranda",
@@ -90,7 +91,9 @@
     "reportMeds": "Obat yang diberikan",
     "reportVaccines": "Status vaksin",
     "reportNoSymptoms": "Tidak ada gejala tercatat",
-    "reportNoMeds": "Tidak ada obat diberikan"
+    "reportNoMeds": "Tidak ada obat diberikan",
+    "recentlyGiven": "Baru diberikan",
+    "logMed": "Catat obat"
   },
   "memories": {
     "title": "Kenangan",
@@ -133,10 +136,8 @@
     "editTitle": "Ubah catatan",
     "kind": "Jenis",
     "note": "Catatan",
-    "occurredAt": "Kapan",
-    "occurredAtHint": "Kosongkan untuk dicatat sebagai sekarang",
+    "occurredAt": "Tanggal",
     "occurredAtInvalid": "Isi tanggal dengan format YYYY-MM-DD",
-    "now": "Sekarang",
     "photo": "Foto",
     "addPhoto": "Tambah foto",
     "weightKg": "Berat (kg)",
@@ -159,7 +160,35 @@
     "milestoneTitle": "Pencapaian",
     "save": "Simpan",
     "deleteEntry": "Hapus catatan",
-    "undoLogged": "Tercatat"
+    "undoLogged": "Tercatat",
+    "hero": {
+      "feed": "Catat makanan",
+      "water": "Air segar",
+      "walk": "Waktunya jalan-jalan",
+      "potty": "Waktunya buang air",
+      "mood": "Bagaimana perasaannya?",
+      "checkin": "Cek harian",
+      "symptom": "Ada yang tidak beres?",
+      "med_given": "Obat diberikan",
+      "vaccine": "Catatan vaksin",
+      "visit": "Kunjungan dokter hewan",
+      "weight": "Cek berat badan",
+      "photo": "Abadikan momennya",
+      "milestone": "Momen untuk dikenang",
+      "task": "Pengingat selesai",
+      "vet_bill": "Tagihan dokter"
+    },
+    "presetBreakfast": "Sarapan",
+    "presetLunch": "Makan siang",
+    "presetDinner": "Makan malam",
+    "presetSnack": "Camilan",
+    "presetMorningWalk": "Jalan pagi",
+    "presetEveningWalk": "Jalan sore",
+    "presetsHint": "Catatan cepat",
+    "lastWeight": "Terakhir dicatat",
+    "details": "Rincian",
+    "pickHint": "Pilih apa yang ingin dicatat",
+    "checkinExists": "Sudah ada check-in untuk hari ini"
   },
   "reminder": {
     "title": "Pengingat",
@@ -179,7 +208,9 @@
     "upcoming": "Akan datang",
     "done": "Selesai",
     "markDone": "Tandai selesai",
-    "deleteRule": "Hapus pengingat"
+    "deleteRule": "Hapus pengingat",
+    "titleRequired": "Judul wajib diisi",
+    "dueInvalid": "Isi tanggal dengan format YYYY-MM-DD"
   },
   "settings": {
     "title": "Pengaturan",
@@ -222,11 +253,11 @@
     }
   },
   "mood": {
-    "Great": "Sangat baik",
-    "Good": "Baik",
-    "OK": "Biasa",
-    "Low": "Kurang",
-    "Bad": "Tidak baik"
+    "great": "Sangat baik",
+    "good": "Baik",
+    "ok": "Biasa",
+    "low": "Kurang",
+    "bad": "Tidak baik"
   },
   "ruleKind": {
     "vaccine": "Vaksin",

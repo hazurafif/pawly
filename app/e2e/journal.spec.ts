@@ -19,7 +19,7 @@ test('entry-form kind grid shows only care kinds', async ({ page }) => {
 
 test('entry-form has a date field', async ({ page }) => {
   await page.goto('/entry-form');
-  await expect(page.getByLabel('When')).toBeVisible();
+  await expect(page.getByLabel('Date')).toBeVisible();
   await expect(page.locator('input[type="date"]')).toBeVisible();
 });
 
@@ -67,6 +67,20 @@ test('favoriting an entry surfaces it in Memories', async ({ page }) => {
 
   await page.goto('/memories');
   await expect(page.getByText('First steps', { exact: true })).toBeVisible();
+});
+
+test('feed form offers one-tap meal presets', async ({ page }) => {
+  await page.goto('/journal');
+  await page.getByRole('button', { name: 'Add entry', exact: true }).click();
+  await page.getByText('Feeding', { exact: true }).click();
+
+  // A specialized feed form: quick-note presets fill the note field.
+  await page.getByRole('button', { name: 'Breakfast', exact: true }).click();
+  await expect(page.getByLabel('Note')).toHaveValue('Breakfast');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+  await expect(page).toHaveURL(/journal/);
+  await expect(page.getByRole('button', { name: 'Breakfast', exact: true })).toBeVisible();
 });
 
 test('journal search filters entries', async ({ page }) => {

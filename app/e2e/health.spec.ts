@@ -48,6 +48,24 @@ test('adds a daily check-in', async ({ page }) => {
   await expect(page.getByText('Zoomies at midnight', { exact: true })).toBeVisible();
 });
 
+test('blocks a second check-in on the same day', async ({ page }) => {
+  await page.goto('/health');
+  await addInSection(page, 'Daily check-ins');
+  await expect(page).toHaveURL(/kind=checkin/);
+
+  await page.getByRole('button', { name: 'Good', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/health/);
+
+  // Same day again — the save must be rejected with a clear error.
+  await addInSection(page, 'Daily check-ins');
+  await expect(page).toHaveURL(/kind=checkin/);
+  await page.getByRole('button', { name: 'Good', exact: true }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText('Already checked in for this day', { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/kind=checkin/);
+});
+
 test('creates a medication reminder from Health', async ({ page }) => {
   await page.goto('/health');
   await addInSection(page, 'Medications');
@@ -60,6 +78,42 @@ test('creates a medication reminder from Health', async ({ page }) => {
 
   await expect(page).toHaveURL(/health/);
   await expect(page.getByText('Daily dewormer', { exact: true })).toBeVisible();
+});
+
+test('logs a medication given straight from a med rule', async ({ page }) => {
+  await page.goto('/health');
+  await addInSection(page, 'Medications');
+  await page.getByLabel('Title').fill('Daily dewormer');
+  await page.getByLabel('Due date').fill('2026-08-10');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+  // The rule card carries its own one-tap logging entry point.
+  await page.getByRole('button', { name: 'Log med', exact: true }).click();
+  await expect(page).toHaveURL(/kind=med_given/);
+  await expect(page.getByLabel('Medication')).toHaveValue('Daily dewormer');
+  await page.getByLabel('Dose').fill('1 tablet');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+
+  await expect(page).toHaveURL(/health/);
+  await expect(page.getByText('Recently given', { exact: true })).toBeVisible();
+  await expect(page.getByText('Daily dewormer', { exact: true }).first()).toBeVisible();
+});
+
+test('weight form shows the last record with a live delta', async ({ page }) => {
+  await page.goto('/health');
+  await addInSection(page, 'Weight');
+  await page.getByLabel('Weight (kg)').fill('4.2');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/health/);
+
+  await addInSection(page, 'Weight');
+  // The specialized form surfaces the previous record as context.
+  await expect(page.getByText(/Last recorded: 4\.2 kg/)).toBeVisible();
+
+  await page.getByLabel('Weight (kg)').fill('4.5');
+  await expect(page.getByText(/▲ 0\.3 kg/)).toBeVisible();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/health/);
 });
 
 test('vet report renders with no data', async ({ page }) => {

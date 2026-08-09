@@ -14,7 +14,8 @@
     "logged": "Logged {{time}}",
     "done": "Done",
     "search": "Search",
-    "back": "Back"
+    "back": "Back",
+    "selectDate": "Select date"
   },
   "tabs": {
     "home": "Home",
@@ -90,7 +91,9 @@
     "reportMeds": "Medications given",
     "reportVaccines": "Vaccine status",
     "reportNoSymptoms": "No symptoms recorded",
-    "reportNoMeds": "No medications given"
+    "reportNoMeds": "No medications given",
+    "recentlyGiven": "Recently given",
+    "logMed": "Log med"
   },
   "memories": {
     "title": "Memories",
@@ -133,10 +136,8 @@
     "editTitle": "Edit entry",
     "kind": "Type",
     "note": "Note",
-    "occurredAt": "When",
-    "occurredAtHint": "Leave empty to log as now",
+    "occurredAt": "Date",
     "occurredAtInvalid": "Enter the date as YYYY-MM-DD",
-    "now": "Now",
     "photo": "Photo",
     "addPhoto": "Add photo",
     "weightKg": "Weight (kg)",
@@ -159,7 +160,35 @@
     "milestoneTitle": "Milestone",
     "save": "Save",
     "deleteEntry": "Delete entry",
-    "undoLogged": "Logged"
+    "undoLogged": "Logged",
+    "hero": {
+      "feed": "Log a meal",
+      "water": "Fresh water",
+      "walk": "Time for a walk",
+      "potty": "Potty break",
+      "mood": "How are they feeling?",
+      "checkin": "Daily check-in",
+      "symptom": "Something off?",
+      "med_given": "Medication given",
+      "vaccine": "Vaccine record",
+      "visit": "Vet visit",
+      "weight": "Weight check-in",
+      "photo": "Capture the moment",
+      "milestone": "A moment to remember",
+      "task": "Reminder completed",
+      "vet_bill": "Vet bill"
+    },
+    "presetBreakfast": "Breakfast",
+    "presetLunch": "Lunch",
+    "presetDinner": "Dinner",
+    "presetSnack": "Snack",
+    "presetMorningWalk": "Morning walk",
+    "presetEveningWalk": "Evening walk",
+    "presetsHint": "Quick notes",
+    "lastWeight": "Last recorded",
+    "details": "Details",
+    "pickHint": "Choose what you're logging",
+    "checkinExists": "Already checked in for this day"
   },
   "reminder": {
     "title": "Reminders",
@@ -179,7 +208,9 @@
     "upcoming": "Upcoming",
     "done": "Done",
     "markDone": "Mark done",
-    "deleteRule": "Delete reminder"
+    "deleteRule": "Delete reminder",
+    "titleRequired": "Title is required",
+    "dueInvalid": "Enter the date as YYYY-MM-DD"
   },
   "settings": {
     "title": "Settings",
@@ -222,11 +253,11 @@
     }
   },
   "mood": {
-    "Great": "Great",
-    "Good": "Good",
-    "OK": "OK",
-    "Low": "Low",
-    "Bad": "Not great"
+    "great": "Great",
+    "good": "Good",
+    "ok": "OK",
+    "low": "Low",
+    "bad": "Not great"
   },
   "ruleKind": {
     "vaccine": "Vaccine",

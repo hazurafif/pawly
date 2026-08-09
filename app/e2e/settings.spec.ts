@@ -8,13 +8,37 @@ test('server address is prefilled from the baked .env URL', async ({ page }) => 
 
 test('language switches between English and Indonesian', async ({ page }) => {
   await page.goto('/settings');
-  await expect(page.getByText('Pengaturan', { exact: true })).toBeVisible();
-
-  await page.getByText('English', { exact: true }).click();
-  await expect(page.getByText('Server address', { exact: true })).toBeVisible();
+  // English is the default locale.
+  await expect(page.getByText('Settings', { exact: true })).toBeVisible();
 
   await page.getByText('Bahasa Indonesia', { exact: true }).click();
   await expect(page.getByText('Alamat server', { exact: true })).toBeVisible();
+
+  await page.getByText('English', { exact: true }).click();
+  await expect(page.getByText('Server address', { exact: true })).toBeVisible();
+});
+
+test('language buttons highlight the active language', async ({ page }) => {
+  await page.goto('/settings');
+  // Default locale is English: primarySoft tint on the active button.
+  await expect(page.getByRole('button', { name: 'English' })).toHaveCSS(
+    'background-color',
+    'rgb(233, 238, 245)'
+  );
+  await expect(page.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveCSS(
+    'background-color',
+    'rgb(239, 239, 241)'
+  );
+
+  await page.getByText('Bahasa Indonesia', { exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Bahasa Indonesia' })).toHaveCSS(
+    'background-color',
+    'rgb(233, 238, 245)'
+  );
+  await expect(page.getByRole('button', { name: 'English' })).toHaveCSS(
+    'background-color',
+    'rgb(239, 239, 241)'
+  );
 });
 
 test('exports the journal as JSON', async ({ page }) => {
