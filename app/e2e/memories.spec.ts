@@ -23,8 +23,8 @@ test('favorites appear in Memories', async ({ page }) => {
 test('unfavorited entries leave Memories', async ({ page }) => {
   await page.goto('/journal');
   await page.getByRole('button', { name: 'New entry', exact: true }).click();
-  await page.getByText('Milestone', { exact: true }).click();
-  await page.getByLabel('Milestone').fill('Gotcha day!');
+  await page.getByText('Mood', { exact: true }).click();
+  await page.getByLabel('Note').fill('Gotcha day!');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
 
   await page.getByRole('button', { name: 'Favorite', exact: true }).click();

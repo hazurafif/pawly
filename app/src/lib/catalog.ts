@@ -25,9 +25,9 @@ export const EVENT_KIND_META: Record<
 
 // Journal (care) kinds offered by the "add entry" flow on the Journal tab.
 // Health kinds (weight, vaccine, med, visit, symptom) are added from the
-// Health tab, which preselects the kind via the ?kind= param.
+// Health tab; milestones are added from the Memories tab.
 export const JOURNAL_KINDS: EventKind[] = [
-  'feed', 'water', 'walk', 'potty', 'mood', 'photo', 'milestone',
+  'feed', 'water', 'walk', 'potty', 'mood', 'photo',
 ];
 
 // Every kind offered by the type-driven "add entry" flow, in display order.

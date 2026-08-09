@@ -105,7 +105,9 @@
     "cameHomeOn": "Pulang pada {{date}}",
     "age": "{{age}}",
     "favorites": "Favorit",
-    "favoritesHint": "Entri, foto, dan pencapaian yang disukai"
+    "favoritesHint": "Entri, foto, dan pencapaian yang disukai",
+    "milestones": "Momen penting",
+    "milestonesEmpty": "Belum ada momen penting — langkah pertama, kata pertama, hari pertama"
   },
   "petForm": {
     "title": "Detail hewan",

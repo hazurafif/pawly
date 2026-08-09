@@ -105,7 +105,9 @@
     "cameHomeOn": "Came home on {{date}}",
     "age": "{{age}} old",
     "favorites": "Favorites",
-    "favoritesHint": "Hearted entries, photos, and milestones"
+    "favoritesHint": "Hearted entries, photos, and milestones",
+    "milestones": "Milestones",
+    "milestonesEmpty": "No milestones yet — a first step, a first word, a gotcha day"
   },
   "petForm": {
     "title": "Pet details",

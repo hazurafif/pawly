@@ -25,6 +25,9 @@ export default function MemoriesScreen() {
   const { data: favorites } = useRepoData((r) =>
     petId ? r.favoritesForPet(petId) : Promise.resolve([] as Event[])
   );
+  const { data: milestones } = useRepoData((r) =>
+    petId ? r.eventsForPet(petId, { kinds: ['milestone'] }) : Promise.resolve([] as Event[])
+  );
   const { data: photos } = useRepoData((r) =>
     petId ? r.photosForPet(petId) : Promise.resolve([] as PhotoWithUri[])
   );
@@ -67,6 +70,39 @@ export default function MemoriesScreen() {
         <ActivityIndicator color={colors.primary} style={styles.loading} />
       ) : (
         <>
+          {/* Milestones — added from here, not from the journal picker */}
+          <SectionHeader
+            icon="star-outline"
+            title={t('memories.milestones')}
+            action={{ label: t('common.add'), onPress: () => router.push('/entry-form?kind=milestone') }}
+          />
+          {(milestones ?? []).length === 0 ? (
+            <Card>
+              <EmptyState icon="star-outline" text={t('memories.milestonesEmpty')} />
+            </Card>
+          ) : (
+            (milestones ?? []).map((e) => {
+              const meta = kindMeta(e.kind);
+              return (
+                <Pressable
+                  key={e.id}
+                  onPress={() => router.push(`/entry-form?id=${e.id}`)}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [styles.favRow, pressed && styles.pressed]}
+                >
+                  <View style={[styles.favIcon, { backgroundColor: meta.color + '22' }]}>
+                    <Ionicons name={meta.icon as never} size={18} color={meta.color} />
+                  </View>
+                  <View style={styles.favInfo}>
+                    <Text style={styles.favTitle}>{e.title || t('event.kinds.milestone')}</Text>
+                    <Text style={styles.favMeta}>{formatDate(e.occurred_at, locale)}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.border} />
+                </Pressable>
+              );
+            })
+          )}
+
           {/* Gotcha day */}
           {gotcha ? (
             <Pressable

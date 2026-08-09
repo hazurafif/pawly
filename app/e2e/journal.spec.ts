@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures';
-import { createPet, setEnglish } from './helpers';
+import { addInSection, createPet, setEnglish } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await setEnglish(page);
@@ -9,11 +9,11 @@ test.beforeEach(async ({ page }) => {
 test('entry-form kind picker shows the curated care kinds only', async ({ page }) => {
   await page.goto('/entry-form');
 
-  for (const label of ['Feeding', 'Water', 'Walk', 'Potty', 'Mood', 'Photo', 'Milestone']) {
+  for (const label of ['Feeding', 'Water', 'Walk', 'Potty', 'Mood', 'Photo']) {
     await expect(page.getByText(label, { exact: true }), label).toBeVisible();
   }
-  // Health kinds are added from the Health tab, not the journal picker.
-  for (const hidden of ['Vaccine', 'Weight', 'Vet visit', 'Symptom', 'Medication', 'Check-in']) {
+  // Health kinds are added from the Health tab; milestones from Memories.
+  for (const hidden of ['Vaccine', 'Weight', 'Vet visit', 'Symptom', 'Medication', 'Check-in', 'Milestone']) {
     await expect(page.getByText(hidden, { exact: true }), hidden).toHaveCount(0);
   }
 });
@@ -73,12 +73,16 @@ test('editing an entry updates the journal', async ({ page }) => {
 });
 
 test('favoriting an entry surfaces it in Memories', async ({ page }) => {
-  await page.goto('/journal');
-  await page.getByRole('button', { name: 'New entry', exact: true }).click();
-  await page.getByText('Milestone', { exact: true }).click();
+  // Milestones are added from the Memories tab now, not the journal picker.
+  await page.goto('/memories');
+  await addInSection(page, 'Milestones');
+  await expect(page).toHaveURL(/kind=milestone/);
   await page.getByLabel('Milestone').fill('First steps');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page).toHaveURL(/memories/);
+  await expect(page.getByText('First steps', { exact: true })).toBeVisible();
 
+  await page.goto('/journal');
   await page.getByRole('button', { name: 'Favorite', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Remove favorite', exact: true })).toBeVisible();
 
