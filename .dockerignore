@@ -1,0 +1,9 @@
+**/node_modules
+**/.expo
+**/.git
+assets/screenshots/*.png
+backend/data
+backend/pawly
+*.db
+*.db-wal
+*.db-shm
