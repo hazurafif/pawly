@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useActivePet } from '../../src/hooks/useActivePet';
 import { useRepoData } from '../../src/hooks/useRepoData';
 import { getRepository } from '../../src/db/db';
-import { Chip, EmptyState, SectionHeader } from '../../src/components/ui';
+import { Chip, EmptyState } from '../../src/components/ui';
 import { Fab } from '../../src/components/ui';
 import { kindMeta } from '../../src/lib/catalog';
 import { dayKeyOfIso, formatTime, relativeDayLabel, weightKg } from '../../src/lib/format';
@@ -109,16 +109,29 @@ export default function JournalScreen() {
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
-        <SectionHeader icon="book-outline" title={t('journal.title')} />
-
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('journal.searchPlaceholder')}
-          placeholderTextColor={colors.textMuted}
-          style={styles.search}
-          accessibilityLabel={t('common.search')}
-        />
+        {/* No in-screen title: the tab header already says "Journal". */}
+        <View style={styles.searchWrap}>
+          <Ionicons name="search" size={18} color={colors.textMuted} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('journal.searchPlaceholder')}
+            placeholderTextColor={colors.textMuted}
+            style={styles.search}
+            accessibilityLabel={t('common.search')}
+          />
+          {query ? (
+            <Pressable
+              onPress={() => setQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel={t('journal.clearSearch')}
+              hitSlop={8}
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+            </Pressable>
+          ) : null}
+        </View>
 
         <View style={styles.chips}>
           {(['all', 'care', 'health'] as ChipKey[]).map((key) => (
