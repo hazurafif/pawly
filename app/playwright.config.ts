@@ -16,10 +16,10 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    // The full e2e stack: test backend on 8083 + app baked with the test
-    // URL. --build keeps the image's baked EXPO_PUBLIC_PAWLY_URL in sync
-    // with the test override.
-    command: 'podman compose -f ../docker-compose.yml -f ../docker-compose.test.yml up -d --build app backend',
+    // The standalone e2e stack: test backend on 8083 + app baked with the
+    // test URL. --build keeps the image's baked EXPO_PUBLIC_PAWLY_URL in
+    // sync with the e2e compose file.
+    command: 'podman compose -f ../docker-compose.e2e.yml up -d --build',
     url: 'http://localhost:8084',
     reuseExistingServer: true,
     timeout: 180_000,

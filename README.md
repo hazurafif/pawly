@@ -231,18 +231,18 @@ for real use, one for tests — so automated tests never touch your data.
 podman compose up -d --build
 
 # e2e stack — fully isolated project on :8083/:8084 with an ephemeral DB
-podman compose -f docker-compose.yml -f docker-compose.test.yml up -d --build
+podman compose -f docker-compose.e2e.yml up -d --build
 ```
 
 **Why the split:** `app/Dockerfile` exports a static Expo web build with the
 backend URL baked in (`EXPO_PUBLIC_PAWLY_URL` build arg). The e2e web bundle
 must point at the test backend — if it shared the dev backend, every test
 pet (Miko, Miko, Miko…) would sync into your real database and from there
-into your phone. `docker-compose.test.yml` therefore declares its own
-compose project (`name: pawly-e2e`), maps the test backend to :8083 with a
-tmpfs data dir (recreated empty before every test), and bakes the test app
-to `http://localhost:8083`. The phone/emulator app only ever talks to the
-dev backend on :8080.
+into your phone. `docker-compose.e2e.yml` is therefore a **standalone**
+compose project (`name: pawly-e2e`) that defines its own stack: the test
+backend on :8083 with a tmpfs data dir (recreated empty before every test),
+and the test app on :8084 baked to `http://localhost:8083`. The
+phone/emulator app only ever talks to the dev backend on :8080.
 
 Full browser E2E (47 tests across onboarding, pet form, journal, health,
 memories, settings, and sync — running against the dockerized app):

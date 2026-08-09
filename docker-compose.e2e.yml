@@ -1,0 +1,33 @@
+# Standalone E2E stack (project pawly-e2e) — Playwright-only.
+#
+# Deliberately NOT merged with docker-compose.yml: the e2e backend runs on
+# its own port with an ephemeral tmpfs data dir, and the e2e web bundle is
+# baked with the test backend URL. That way automated tests never touch the
+# dev backend (8080, named volume) or pollute the emulator app's data with
+# test pets. Every test starts from a clean server.
+name: pawly-e2e
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8083:8080"
+    environment:
+      PAWLY_PORT: "8080"
+      PAWLY_DATA_DIR: /tmp/pawly-test-data
+    tmpfs:
+      - /tmp/pawly-test-data
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ./app
+      args:
+        # Baked into the e2e web bundle: the browser must reach the TEST
+        # backend, never the dev one.
+        EXPO_PUBLIC_PAWLY_URL: http://localhost:8083
+    ports:
+      - "8084:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

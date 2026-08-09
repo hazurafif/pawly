@@ -3,7 +3,7 @@ import path from 'node:path';
 import { test as base } from '@playwright/test';
 
 const root = path.resolve(__dirname, '../..');
-const compose = ['docker-compose.yml', 'docker-compose.test.yml']
+const compose = ['docker-compose.e2e.yml']
   .map((f) => `-f ${path.join(root, f)}`)
   .join(' ');
 
