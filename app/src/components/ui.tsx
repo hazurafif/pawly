@@ -76,28 +76,25 @@ const createStyles = (colors: Palette) =>
       minHeight: 48,
     },
     buttonSecondaryBorder: { borderWidth: 1, borderColor: colors.border },
+    buttonDangerGhostBorder: { borderWidth: 1, borderColor: colors.error },
     buttonDisabled: { opacity: 0.5 },
     buttonText: { fontSize: 15, fontWeight: '700' },
     fab: {
       position: 'absolute',
       right: spacing.lg,
       bottom: spacing.xxl * 2 + spacing.xl,
-      minWidth: 56,
+      width: 56,
       height: 56,
-      paddingHorizontal: spacing.lg,
       borderRadius: radius.pill,
       backgroundColor: colors.primaryDark,
       alignItems: 'center',
       justifyContent: 'center',
-      flexDirection: 'row',
-      gap: spacing.xs,
       shadowColor: colors.primaryDark,
       shadowOffset: { width: 0, height: 6 },
       shadowOpacity: 0.3,
       shadowRadius: 12,
       elevation: 6,
     },
-    fabLabel: { color: colors.white, fontSize: 15, fontWeight: '800' },
     fabPressed: { opacity: 0.85, transform: [{ scale: 0.96 }] },
     pressed: { opacity: 0.7 },
   });
@@ -253,7 +250,7 @@ export function Button({
 }: {
   label: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'dangerGhost';
   disabled?: boolean;
   icon?: string;
 }) {
@@ -264,10 +261,11 @@ export function Button({
       ? colors.primaryDark
       : variant === 'danger'
         ? colors.error
-        : variant === 'ghost'
+        : variant === 'ghost' || variant === 'dangerGhost'
           ? 'transparent'
           : colors.surfaceMuted;
-  const fg = variant === 'ghost' ? colors.textMuted : colors.white;
+  const fg =
+    variant === 'ghost' ? colors.textMuted : variant === 'dangerGhost' ? colors.error : colors.white;
   return (
     <Pressable
       onPress={onPress}
@@ -278,6 +276,7 @@ export function Button({
         styles.button,
         { backgroundColor: bg },
         variant === 'secondary' && styles.buttonSecondaryBorder,
+        variant === 'dangerGhost' && styles.buttonDangerGhostBorder,
         disabled && styles.buttonDisabled,
         pressed && !disabled && styles.pressed,
       ]}
@@ -298,8 +297,7 @@ export function Fab({ icon, label, onPress }: { icon: string; label: string; onP
       accessibilityLabel={label}
       style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
     >
-      <Ionicons name={icon as never} size={22} color={colors.white} />
-      <Text style={styles.fabLabel}>{label}</Text>
+      <Ionicons name={icon as never} size={26} color={colors.white} />
     </Pressable>
   );
 }

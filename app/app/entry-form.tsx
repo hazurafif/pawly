@@ -455,7 +455,11 @@ export default function EntryFormScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Button label={t('common.save')} onPress={() => void save()} disabled={saving || !activePet} icon="checkmark" />
-        {editingId ? <Button label={t('entry.deleteEntry')} onPress={remove} variant="danger" icon="trash-outline" /> : null}
+        {editingId ? (
+          <View style={styles.deleteWrap}>
+            <Button label={t('entry.deleteEntry')} onPress={remove} variant="dangerGhost" icon="trash-outline" />
+          </View>
+        ) : null}
       </ScrollView>
     </>
   );
@@ -518,5 +522,6 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   hint: { fontSize: 12, color: colors.textMuted, marginTop: -spacing.xs, marginBottom: spacing.sm },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   error: { color: colors.errorDeep, fontSize: 14, marginVertical: spacing.sm },
+  deleteWrap: { marginTop: spacing.sm },
   pressed: { opacity: 0.7 },
 });
