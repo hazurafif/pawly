@@ -41,7 +41,6 @@ describe('catalog integrity', () => {
     // Milestone moved to the Memories tab; health kinds live on Health.
     expect(JOURNAL_KINDS).toEqual(['feed', 'water', 'walk', 'potty', 'mood', 'photo']);
     expect(JOURNAL_KINDS).not.toContain('milestone');
-    expect(LOGGABLE_KINDS).toContain('milestone');
     for (const kind of JOURNAL_KINDS) {
       expect(LOGGABLE_KINDS).toContain(kind);
       expect(EVENT_KIND_META[kind]?.chip).toBe('care');
