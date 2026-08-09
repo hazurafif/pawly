@@ -48,7 +48,7 @@
     "chipAll": "All",
     "chipCare": "Care",
     "chipHealth": "Health",
-    "addEntry": "Add entry",
+    "addEntry": "Log something",
     "noResults": "No entries match your search",
     "favorite": "Favorite",
     "unfavorite": "Remove favorite"
@@ -132,9 +132,8 @@
     "estimated": "estimated"
   },
   "entry": {
-    "title": "Add entry",
+    "title": "Log something",
     "editTitle": "Edit entry",
-    "kind": "Type",
     "note": "Note",
     "occurredAt": "Date",
     "occurredAtInvalid": "Enter the date as YYYY-MM-DD",
@@ -187,8 +186,11 @@
     "presetsHint": "Quick notes",
     "lastWeight": "Last recorded",
     "details": "Details",
-    "pickHint": "Choose what you're logging",
-    "checkinExists": "Already checked in for this day"
+    "pickHint": "What’s new with {{name}}?",
+    "checkinExists": "Already checked in for this day",
+    "pickGroupCare": "Everyday care",
+    "pickGroupHealth": "Health",
+    "pickGroupMemories": "Memories"
   },
   "reminder": {
     "title": "Reminders",

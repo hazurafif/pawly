@@ -10,7 +10,7 @@ import { getRepository } from '../src/db/db';
 import { goBack } from '../src/lib/navigation';
 import { confirmAction } from '../src/lib/confirm';
 import { logEvent, logPhoto } from '../src/lib/entries';
-import { APPETITE_VALUES, JOURNAL_KINDS, MOOD_VALUES, kindMeta } from '../src/lib/catalog';
+import { APPETITE_VALUES, MOOD_VALUES, PICK_GROUPS, kindMeta } from '../src/lib/catalog';
 import { Button, Card, ChipGroup } from '../src/components/ui';
 import { DateField } from '../src/components/DateField';
 import {
@@ -237,37 +237,50 @@ export default function EntryFormScreen() {
         {/* Kind picker: Journal flow only. Other screens preselect via ?kind=. */}
         {!kindChosen ? (
           <Card>
-            <Text style={styles.label}>{t('entry.kind')}</Text>
-            <View style={styles.kindGrid}>
-              {JOURNAL_KINDS.map((k) => {
-                const meta = kindMeta(k);
-                return (
-                  <Pressable
-                    key={k}
-                    onPress={() => {
-                      setKind(k);
-                      setKindChosen(true);
-                    }}
-                    accessibilityRole="button"
-                    style={({ pressed }) => [styles.kindItem, pressed && styles.pressed]}
-                  >
-                    <View style={[styles.kindIcon, { backgroundColor: meta.color + '22' }]}>
-                      <Ionicons name={meta.icon as never} size={22} color={meta.color} />
-                    </View>
-                    <Text style={styles.kindLabel}>{t(`event.kinds.${k}` as never)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <Text style={styles.pickTitle}>
+              {t('entry.pickHint', { name: activePet?.name ?? '' })}
+            </Text>
+            {PICK_GROUPS.map((group) => (
+              <View key={group.key} style={styles.group}>
+                <Text style={styles.groupTitle}>
+                  {t(`entry.pickGroup${group.key.charAt(0).toUpperCase()}${group.key.slice(1)}` as never)}
+                </Text>
+                <View style={styles.kindGrid}>
+                  {group.kinds.map((k) => {
+                    const meta = kindMeta(k);
+                    return (
+                      <Pressable
+                        key={k}
+                        onPress={() => {
+                          setKind(k);
+                          setKindChosen(true);
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel={t(`event.kinds.${k}` as never)}
+                        style={({ pressed }) => [styles.kindItem, pressed && styles.pressed]}
+                      >
+                        <View style={[styles.kindIcon, { backgroundColor: meta.color + '22' }]}>
+                          <Ionicons name={meta.icon as never} size={20} color={meta.color} />
+                        </View>
+                        <View style={styles.kindInfo}>
+                          <Text style={styles.kindLabel}>{t(`event.kinds.${k}` as never)}</Text>
+                          <Text style={styles.kindDesc} numberOfLines={1}>
+                            {t(`entry.hero.${k}` as never)}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ))}
           </Card>
         ) : null}
 
         {kindChosen ? <KindHero kind={kind} /> : null}
 
         <Card>
-          {!kindChosen ? (
-            <Text style={styles.pickHint}>{t('entry.pickHint')}</Text>
-          ) : (
+          {kindChosen ? (
             <>
               {/* ── weight: big kg input + last-record context ── */}
               {kind === 'weight' ? <WeightField value={weight} onChange={setWeight} lastKg={lastWeightKg} /> : null}
@@ -429,7 +442,7 @@ export default function EntryFormScreen() {
               ) : null}
 
             </>
-          )}
+          ) : null}
           <Text style={[styles.label, { marginTop: spacing.md }]}>{t('entry.occurredAt')}</Text>
           <DateField
             value={occurredAt}
@@ -452,27 +465,46 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
   label: { fontSize: 13, fontWeight: '700', color: colors.text, marginBottom: spacing.xs },
-  pickHint: { fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.sm },
+  pickTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  group: { marginBottom: spacing.md },
+  groupTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+    marginBottom: spacing.sm,
+  },
   field: { marginBottom: spacing.md },
   kindGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kindItem: {
-    width: '30%',
+    width: '48%',
     flexGrow: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceMuted,
   },
   kindIcon: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  kindLabel: { fontSize: 12, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  kindInfo: { flex: 1, minWidth: 0 },
+  kindLabel: { fontSize: 14, fontWeight: '700', color: colors.text },
+  kindDesc: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
   input: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.sm,

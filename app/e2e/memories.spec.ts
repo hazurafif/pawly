@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test('favorites appear in Memories', async ({ page }) => {
   await page.goto('/journal');
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click();
+  await page.getByRole('button', { name: 'Log something', exact: true }).click();
   await page.getByText('Photo', { exact: true }).click();
   await page.getByLabel('Note').fill('First beach trip');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -22,7 +22,7 @@ test('favorites appear in Memories', async ({ page }) => {
 
 test('unfavorited entries leave Memories', async ({ page }) => {
   await page.goto('/journal');
-  await page.getByRole('button', { name: 'Add entry', exact: true }).click();
+  await page.getByRole('button', { name: 'Log something', exact: true }).click();
   await page.getByText('Milestone', { exact: true }).click();
   await page.getByLabel('Milestone').fill('Gotcha day!');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
