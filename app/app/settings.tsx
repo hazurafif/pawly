@@ -18,6 +18,7 @@ import { useActivePet } from '../src/hooks/useActivePet';
 import { getRepository } from '../src/db/db';
 import { autoDetectEnabled, getLanguage, getServerUrl, setLanguage, setServerUrl } from '../src/settings/settings';
 import { discoverServerUrl } from '../src/lib/server';
+import { confirmAction } from '../src/lib/confirm';
 import { setAppLanguage } from '../src/i18n';
 import { Button, Card, EmptyState, SectionHeader } from '../src/components/ui';
 import { colors, radius, spacing } from '../src/lib/theme';
@@ -91,17 +92,17 @@ export default function SettingsScreen() {
   };
 
   const removePet = (id: string, name: string) => {
-    Alert.alert(t('common.confirmDelete'), t('petForm.deleteConfirm', { name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () =>
-          void getRepository()
-            .then((repo) => repo.deletePetCascade(id))
-            .then(() => syncNow()),
-      },
-    ]);
+    confirmAction({
+      title: t('common.confirmDelete'),
+      message: t('petForm.deleteConfirm', { name }),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+      onConfirm: () =>
+        void getRepository()
+          .then((repo) => repo.deletePetCascade(id))
+          .then(() => syncNow()),
+    });
   };
 
   return (
@@ -191,7 +192,10 @@ export default function SettingsScreen() {
         {(['id', 'en'] as const).map((lang) => (
           <Pressable
             key={lang}
-            onPress={() => void setAppLanguage(lang)}
+            onPress={() => {
+              void setLanguage(lang);
+              void setAppLanguage(lang);
+            }}
             accessibilityRole="button"
             accessibilityState={{ selected: true }}
             style={({ pressed }) => [styles.langButton, pressed && styles.pressed]}

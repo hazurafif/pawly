@@ -1,6 +1,6 @@
 import { COLUMNS, type Db, type Row, type TableName } from './types';
 import type { Event, EventWithPet, Pet, PhotoWithUri, ReminderRule, RuleWithPet } from './types';
-import { upsertSql } from './schema';
+import { forceUpsertSql, migrate, upsertSql } from './schema';
 import { notifyDataChanged } from './notify';
 
 export interface DirtyRow {
@@ -112,6 +112,19 @@ export class Repository {
       try {
         for (const table of Object.keys(changes) as TableName[]) {
           for (const row of changes[table]!) {
+            // Deletes are final in Pawly: a stale pull of a live row must
+            // never resurrect a locally tombstoned row. (A push in flight
+            // during a delete has its updated_at clamped to server time,
+            // which can land after the tombstone and win LWW otherwise.)
+            if (!row.deleted_at) {
+              const local = await this.db.first<{ deleted_at: string | null }>(
+                `SELECT deleted_at FROM ${table} WHERE id = ?`,
+                [row.id as string]
+              );
+              if (local?.deleted_at) {
+                continue;
+              }
+            }
             const res = await this.db.run(upsertSql(table), this.valuesFor(table, row));
             // Only APPLIED rows advance the cursor: a row that loses LWW
             // locally is already present locally, so refetching it is
@@ -351,7 +364,9 @@ export class Repository {
       row.updated_at = now;
       await this.db.exec('BEGIN');
       try {
-        await this.db.run(upsertSql(table), this.valuesFor(table, row));
+        // Force-apply: a stale pulled row with a server-clamped timestamp
+        // must never block the tombstone (deletes are final).
+        await this.db.run(forceUpsertSql(table), this.valuesFor(table, row));
         await this.db.run(
           `INSERT INTO dirty (table_name, id) VALUES (?, ?)
            ON CONFLICT(table_name, id) DO NOTHING`,
@@ -378,19 +393,20 @@ export class Repository {
   // and its reminder rules. All soft-deleted, all dirty — other devices and
   // the server converge on the same tombstones.
   async deletePetCascade(petId: string): Promise<void> {
-    return this.withTx(async () => {
+        return this.withTx(async () => {
       const pet = await this.db.first<Row & { id: string }>(
         `SELECT ${COLUMNS.pets.join(', ')} FROM pets WHERE id = ?`,
         [petId]
       );
-      if (!pet || pet.deleted_at) {
+            if (!pet || pet.deleted_at) {
         return;
       }
-      const now = new Date().toISOString();
+            const now = new Date().toISOString();
       const tombstone = async (table: TableName, row: Row & { id: string }) => {
         row.deleted_at = now;
         row.updated_at = now;
-        await this.db.run(upsertSql(table), this.valuesFor(table, row));
+        // Force-apply: see softDelete — deletes are final.
+        await this.db.run(forceUpsertSql(table), this.valuesFor(table, row));
         await this.db.run(
           `INSERT INTO dirty (table_name, id) VALUES (?, ?)
            ON CONFLICT(table_name, id) DO NOTHING`,
@@ -398,11 +414,11 @@ export class Repository {
         );
       };
 
-      const events = await this.db.all<Row & { id: string }>(
+            const events = await this.db.all<Row & { id: string }>(
         `SELECT ${COLUMNS.events.join(', ')} FROM events WHERE pet_id = ? AND deleted_at IS NULL`,
         [petId]
       );
-      const eventIds = events.map((e) => e.id);
+            const eventIds = events.map((e) => e.id);
       const photos = eventIds.length
         ? await this.db.all<Row & { id: string }>(
             `SELECT ${COLUMNS.photos.join(', ')} FROM photos
@@ -410,12 +426,12 @@ export class Repository {
             eventIds
           )
         : [];
-      const rules = await this.db.all<Row & { id: string }>(
+            const rules = await this.db.all<Row & { id: string }>(
         `SELECT ${COLUMNS.reminder_rules.join(', ')} FROM reminder_rules
          WHERE pet_id = ? AND deleted_at IS NULL`,
         [petId]
       );
-
+      
       await this.db.exec('BEGIN');
       try {
         await tombstone('pets', pet);

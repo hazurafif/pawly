@@ -1,0 +1,10 @@
+# Test-only override: run the backend with an ephemeral tmpfs data dir so
+# every Playwright test starts from a clean server (no cross-test sync
+# contamination). The named volume in docker-compose.yml stays mounted at
+# /data but is unused — the server writes to the tmpfs path instead.
+services:
+  backend:
+    environment:
+      PAWLY_DATA_DIR: /tmp/pawly-test-data
+    tmpfs:
+      - /tmp/pawly-test-data

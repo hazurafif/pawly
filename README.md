@@ -201,7 +201,7 @@ app bundle):
 ## Verify
 
 ```bash
-cd app && pnpm typecheck && pnpm test     # 15 files, 102 tests
+cd app && pnpm typecheck && pnpm test     # 16 files, 123 tests
 cd backend && go test ./...               # 43 tests incl. two-device convergence
 ```
 
@@ -215,3 +215,28 @@ Tests: app unit tests run on sql.js (in-memory SQLite, same `Db` facade);
 `server-e2e.test.ts` boots a real Go server and syncs real rows and photo
 bytes. Backend tests cover LWW, push validation, clock clamping, photo GC,
 and a two-device convergence scenario.
+
+## Docker + Playwright E2E
+
+The whole stack dockerizes:
+
+```bash
+podman compose up -d --build        # backend :8080, web app :8082
+```
+
+`app/Dockerfile` exports the Expo web build (the backend URL is baked in via
+the `EXPO_PUBLIC_PAWLY_URL` build arg, default `http://localhost:8080`) and
+serves it with nginx. `docker-compose.test.yml` runs the backend on an
+ephemeral tmpfs data dir so Playwright tests never contaminate each other.
+
+Full browser E2E (23 tests across onboarding, pet form, journal, health,
+memories, settings, and sync — running against the dockerized app):
+
+```bash
+cd app && pnpm exec playwright install chromium
+podman compose up -d --build
+pnpm test:e2e
+```
+
+The suite auto-resets the backend before every test and verifies end-to-end
+sync by pulling the pushed rows back from the server API.

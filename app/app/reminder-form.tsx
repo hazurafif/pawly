@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -7,6 +7,7 @@ import { useActivePet } from '../src/hooks/useActivePet';
 import { useRepoData } from '../src/hooks/useRepoData';
 import { getRepository } from '../src/db/db';
 import { goBack } from '../src/lib/navigation';
+import { confirmAction } from '../src/lib/confirm';
 import { newId } from '../src/lib/id';
 import { RULE_KINDS, ruleKindMeta } from '../src/lib/catalog';
 import { Button, Card } from '../src/components/ui';
@@ -31,15 +32,23 @@ export default function ReminderFormScreen() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // A stale-render double tap runs save twice and queues two GO_BACKs —
+  // the second one is unhandled and warns. Guard the work, not the UI.
+  const savingRef = useRef(false);
 
   const { data: rules } = useRepoData((r) => r.allRules());
 
+  // Seed the form once per rule; `rules` reloads on every data change
+  // (including background sync pulls), reseeding mid-edit would wipe input.
+  const seededRuleRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!ruleId || !rules) {
+    if (!ruleId || !rules || seededRuleRef.current === ruleId) {
       return;
     }
     const found = rules.find((r) => r.id === ruleId);
     if (found) {
+      seededRuleRef.current = ruleId;
       setKind(found.kind);
       setTitle(found.title);
       setDue(found.due.slice(0, 10));
@@ -50,6 +59,9 @@ export default function ReminderFormScreen() {
   }, [ruleId, rules]);
 
   const save = async () => {
+    if (savingRef.current) {
+      return;
+    }
     if (!activePet) {
       return;
     }
@@ -61,6 +73,7 @@ export default function ReminderFormScreen() {
       setError(t('petForm.birthDate'));
       return;
     }
+    savingRef.current = true;
     setError(null);
     setSaving(true);
     try {
@@ -101,22 +114,22 @@ export default function ReminderFormScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'save failed');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   const remove = () => {
-    Alert.alert(t('common.confirmDelete'), '', [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () =>
-          void getRepository()
-            .then((repo) => repo.softDelete('reminder_rules', ruleId!))
-            .then(() => goBack(router)),
-      },
-    ]);
+    confirmAction({
+      title: t('common.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+      onConfirm: () =>
+        void getRepository()
+          .then((repo) => repo.softDelete('reminder_rules', ruleId!))
+          .then(() => goBack(router)),
+    });
   };
 
   const chipRow = (values: readonly string[], selected: string, onSelect: (v: string) => void, labelPrefix: string) => (
@@ -130,7 +143,7 @@ export default function ReminderFormScreen() {
           style={({ pressed }) => [styles.chip, v === selected && styles.chipActive, pressed && styles.pressed]}
         >
           <Text style={[styles.chipText, v === selected && styles.chipTextActive]}>
-            {t(`${labelPrefix}${v}` as never)}
+            {t(`${labelPrefix}${v.charAt(0).toUpperCase()}${v.slice(1)}` as never)}
           </Text>
         </Pressable>
       ))}

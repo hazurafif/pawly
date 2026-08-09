@@ -23,10 +23,16 @@ export const EVENT_KIND_META: Record<
   vet_bill: { icon: 'receipt-outline', color: '#8A857D', chip: 'health' },
 };
 
-// Kinds offered by the type-driven "add entry" flow, in display order.
+// Journal (care) kinds offered by the "add entry" flow on the Journal tab.
+// Health kinds (weight, vaccine, med, visit, symptom) are added from the
+// Health tab, which preselects the kind via the ?kind= param.
+export const JOURNAL_KINDS: EventKind[] = [
+  'feed', 'water', 'walk', 'potty', 'mood', 'photo', 'milestone',
+];
+
+// Every kind offered by the type-driven "add entry" flow, in display order.
 export const LOGGABLE_KINDS: EventKind[] = [
-  'feed', 'water', 'walk', 'potty', 'mood', 'photo', 'weight', 'med_given',
-  'vaccine', 'visit', 'symptom', 'milestone',
+  ...JOURNAL_KINDS, 'weight', 'med_given', 'vaccine', 'visit', 'symptom',
 ];
 
 // Quick-log actions on Home.

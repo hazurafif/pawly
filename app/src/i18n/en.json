@@ -134,6 +134,8 @@
     "kind": "Type",
     "note": "Note",
     "occurredAt": "When",
+    "occurredAtHint": "Leave empty to log as now",
+    "occurredAtInvalid": "Enter the date as YYYY-MM-DD",
     "now": "Now",
     "photo": "Photo",
     "addPhoto": "Add photo",
@@ -220,11 +222,11 @@
     }
   },
   "mood": {
-    "great": "Great",
-    "good": "Good",
-    "ok": "OK",
-    "low": "Low",
-    "bad": "Not great"
+    "Great": "Great",
+    "Good": "Good",
+    "OK": "OK",
+    "Low": "Low",
+    "Bad": "Not great"
   },
   "ruleKind": {
     "vaccine": "Vaccine",

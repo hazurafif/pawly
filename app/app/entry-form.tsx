@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,14 +11,16 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import { useActivePet } from '../src/hooks/useActivePet';
 import { getRepository } from '../src/db/db';
 import { goBack } from '../src/lib/navigation';
+import { confirmAction } from '../src/lib/confirm';
 import { logEvent, logPhoto } from '../src/lib/entries';
-import { LOGGABLE_KINDS, kindMeta } from '../src/lib/catalog';
+import { JOURNAL_KINDS, kindMeta } from '../src/lib/catalog';
 import { Button, Card } from '../src/components/ui';
 import type { Event } from '../src/db/types';
 import { colors, radius, spacing } from '../src/lib/theme';
@@ -51,6 +54,8 @@ export default function EntryFormScreen() {
 
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
+  const [occurredAt, setOccurredAt] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [weight, setWeight] = useState('');
   const [dose, setDose] = useState('');
   const [severity, setSeverity] = useState('moderate');
@@ -59,6 +64,9 @@ export default function EntryFormScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // A stale-render double tap runs save twice and queues two GO_BACKs —
+  // the second one is unhandled and warns. Guard the work, not the UI.
+  const savingRef = useRef(false);
 
   // Edit mode: load the event and prefill. (allEvents is the simplest
   // cross-pet lookup; events are few and this screen is modal.)
@@ -75,6 +83,7 @@ export default function EntryFormScreen() {
       setKind(found.kind);
       setTitle(found.title ?? '');
       setText(found.text ?? '');
+      setOccurredAt(found.occurred_at.slice(0, 10));
       if (found.data) {
         try {
           const d = JSON.parse(found.data) as Record<string, unknown>;
@@ -105,13 +114,30 @@ export default function EntryFormScreen() {
   };
 
   const save = async () => {
+    if (savingRef.current) {
+      return;
+    }
     if (!activePet) {
       return;
     }
+    savingRef.current = true;
     setError(null);
     setSaving(true);
     try {
       const repo = await getRepository();
+
+      // Empty means "now"; a filled value must be a real calendar date.
+      let occurredAtIso: string | undefined;
+      if (occurredAt.trim()) {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(occurredAt.trim());
+        const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12) : new Date(NaN);
+        if (!m || Number.isNaN(d.getTime())) {
+          setError(t('entry.occurredAtInvalid'));
+          return;
+        }
+        // Local noon: converting to UTC never shifts the calendar day.
+        occurredAtIso = d.toISOString();
+      }
 
       let data: Record<string, unknown> | null = null;
       if (kind === 'weight') {
@@ -144,6 +170,7 @@ export default function EntryFormScreen() {
             title: title.trim() || null,
             text: text.trim() || null,
             data: data ? JSON.stringify(data) : null,
+            occurred_at: occurredAtIso ?? found.occurred_at,
             updated_at: new Date().toISOString(),
           });
         }
@@ -152,6 +179,7 @@ export default function EntryFormScreen() {
           title: title.trim() || null,
           text: text.trim() || null,
           data,
+          occurredAt: occurredAtIso,
         });
         if (photoUri) {
           await logPhoto(repo, activePet.id, { uri: photoUri, note: title.trim() || undefined });
@@ -162,22 +190,22 @@ export default function EntryFormScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'save failed');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   const remove = () => {
-    Alert.alert(t('common.confirmDelete'), '', [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () =>
-          void getRepository()
-            .then((repo) => repo.softDelete('events', editingId!))
-            .then(() => goBack(router)),
-      },
-    ]);
+    confirmAction({
+      title: t('common.confirmDelete'),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+      onConfirm: () =>
+        void getRepository()
+          .then((repo) => repo.softDelete('events', editingId!))
+          .then(() => goBack(router)),
+    });
   };
 
   const chipRow = (values: readonly string[], selected: string, onSelect: (v: string) => void, labelPrefix: string) => (
@@ -191,7 +219,7 @@ export default function EntryFormScreen() {
           style={({ pressed }) => [styles.chip, v === selected && styles.chipActive, pressed && styles.pressed]}
         >
           <Text style={[styles.chipText, v === selected && styles.chipTextActive]}>
-            {t(`${labelPrefix}${v}` as never)}
+            {t(`${labelPrefix}${v.charAt(0).toUpperCase()}${v.slice(1)}` as never)}
           </Text>
         </Pressable>
       ))}
@@ -200,11 +228,14 @@ export default function EntryFormScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      {!editingId ? (
+      {/* Kind grid is for the Journal flow only: when another screen
+          preselects a kind (health tab's ?kind= param), the choice is
+          fixed and the grid is hidden. */}
+      {!editingId && !params.kind ? (
         <Card>
           <Text style={styles.label}>{t('entry.kind')}</Text>
           <View style={styles.kindGrid}>
-            {LOGGABLE_KINDS.map((k) => {
+            {JOURNAL_KINDS.map((k) => {
               const meta = kindMeta(k);
               const active = k === kind;
               return (
@@ -234,9 +265,64 @@ export default function EntryFormScreen() {
         {kind !== 'mood' ? (
           <>
             <Text style={styles.label}>{t(TITLE_LABEL[kind] ?? 'entry.note' as never)}</Text>
-            <TextInput value={title} onChangeText={setTitle} style={styles.input} accessibilityLabel={t('entry.note')} />
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              style={styles.input}
+              accessibilityLabel={t(TITLE_LABEL[kind] ?? 'entry.note' as never)}
+            />
           </>
         ) : null}
+
+        <Text style={[styles.label, { marginTop: spacing.md }]}>{t('entry.occurredAt')}</Text>
+        {Platform.OS === 'web' ? (
+          <View style={styles.dateWebWrap}>
+            <input
+              type="date"
+              value={occurredAt}
+              aria-label={t('entry.occurredAt')}
+              onChange={(e) => setOccurredAt(e.currentTarget.value)}
+              style={{
+                width: '100%',
+                height: 46,
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                fontSize: 15,
+                color: colors.text,
+                fontFamily: 'inherit',
+              }}
+            />
+          </View>
+        ) : (
+          <>
+            <Pressable
+              onPress={() => setShowDatePicker(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t('entry.occurredAt')}
+              style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}
+            >
+              <Text style={[styles.dateText, occurredAt ? null : styles.datePlaceholder]}>
+                {occurredAt ? occurredAt : t('entry.now')}
+              </Text>
+              <Ionicons name="calendar-outline" size={18} color={colors.textMuted} />
+            </Pressable>
+            {showDatePicker ? (
+              <DateTimePicker
+                value={occurredAt ? new Date(occurredAt + 'T12:00:00') : new Date()}
+                mode="date"
+                display="default"
+                onChange={(event: DateTimePickerEvent, date?: Date) => {
+                  setShowDatePicker(false);
+                  if (event.type === 'set' && date) {
+                    setOccurredAt(date.toLocaleDateString('en-CA'));
+                  }
+                }}
+              />
+            ) : null}
+          </>
+        )}
+        <Text style={styles.hint}>{t('entry.occurredAtHint')}</Text>
 
         {kind === 'weight' ? (
           <>
@@ -280,7 +366,7 @@ export default function EntryFormScreen() {
           </>
         ) : null}
 
-        {kind !== 'mood' && kind !== 'checkin' ? (
+        {kind !== 'mood' && kind !== 'checkin' && (TITLE_LABEL[kind] ?? 'entry.note') !== 'entry.note' ? (
           <>
             <Text style={[styles.label, { marginTop: spacing.md }]}>{t('entry.note')}</Text>
             <TextInput
@@ -349,6 +435,25 @@ const styles = StyleSheet.create({
     minHeight: 46,
     marginBottom: spacing.sm,
   },
+  hint: { fontSize: 12, color: colors.textMuted, marginTop: -spacing.xs, marginBottom: spacing.sm },
+  dateWebWrap: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  dateButton: {
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.sm,
+    minHeight: 46,
+    paddingHorizontal: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  dateText: { fontSize: 15, color: colors.text },
+  datePlaceholder: { color: colors.textMuted },
   multiline: { minHeight: 80, textAlignVertical: 'top' },
   chipRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginBottom: spacing.sm },
   chip: {

@@ -108,6 +108,42 @@ describe('sync application', () => {
     expect(pets[0].name).toBe('Miko');
   });
 
+  it('a stale pull never resurrects a locally tombstoned row', async () => {
+    const { repo } = await newRepo();
+    await repo.applyChanges({
+      pets: rows(pet('p-1', 'Miko', { updated_at: '2026-08-02T00:00:00.000Z' })),
+    });
+    await repo.softDelete('pets', 'p-1');
+    expect(await repo.allPets()).toEqual([]);
+    // A push was in flight during the delete, so the pull carries a live
+    // row whose updated_at was clamped to server time — later than the
+    // tombstone. It must NOT come back.
+    await repo.applyChanges({
+      pets: rows(pet('p-1', 'Miko', { updated_at: '2026-08-09T00:00:00.000Z' })),
+    });
+    expect(await repo.allPets()).toEqual([]);
+  });
+
+  it('a clamped live row applied before the delete cannot block the tombstone', async () => {
+    const { db, repo } = await newRepo();
+    await repo.applyChanges({
+      pets: rows(pet('p-1', 'Miko', { updated_at: '2026-08-02T00:00:00.000Z' })),
+    });
+    // The pull lands first with a server-clamped (newer) live row...
+    await repo.applyChanges({
+      pets: rows(pet('p-1', 'Miko', { updated_at: '2026-08-09T00:00:00.000Z' })),
+    });
+    // ...then the user deletes: the tombstone must force-apply even though
+    // its updated_at is older than the applied row's.
+    await repo.softDelete('pets', 'p-1');
+    expect(await repo.allPets()).toEqual([]);
+    const row = await db.first<{ deleted_at: string | null }>(
+      'SELECT deleted_at FROM pets WHERE id = ?',
+      ['p-1']
+    );
+    expect(row?.deleted_at).not.toBeNull();
+  });
+
   it('tracks the cursor', async () => {
     const { repo } = await newRepo();
     expect(await repo.getCursor()).toBeNull();

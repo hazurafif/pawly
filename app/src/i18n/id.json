@@ -134,6 +134,8 @@
     "kind": "Jenis",
     "note": "Catatan",
     "occurredAt": "Kapan",
+    "occurredAtHint": "Kosongkan untuk dicatat sebagai sekarang",
+    "occurredAtInvalid": "Isi tanggal dengan format YYYY-MM-DD",
     "now": "Sekarang",
     "photo": "Foto",
     "addPhoto": "Tambah foto",
@@ -220,11 +222,11 @@
     }
   },
   "mood": {
-    "great": "Sangat baik",
-    "good": "Baik",
-    "ok": "Biasa",
-    "low": "Kurang",
-    "bad": "Tidak baik"
+    "Great": "Sangat baik",
+    "Good": "Baik",
+    "OK": "Biasa",
+    "Low": "Kurang",
+    "Bad": "Tidak baik"
   },
   "ruleKind": {
     "vaccine": "Vaksin",

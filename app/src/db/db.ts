@@ -9,7 +9,7 @@ let repoPromise: Promise<Repository> | null = null;
 // the repository's transaction mutex only serializes writers that share
 // it, and expo-sqlite shares the underlying connection per database name.
 export function getRepository(): Promise<Repository> {
-  if (!repoPromise) {
+    if (!repoPromise) {
     repoPromise = (async () => {
       const db = await SQLite.openDatabaseAsync('pawly.db');
       await db.execAsync('PRAGMA journal_mode = WAL;');

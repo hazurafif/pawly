@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRepoData } from '../src/hooks/useRepoData';
 import { getRepository } from '../src/db/db';
 import { goBack } from '../src/lib/navigation';
+import { confirmAction } from '../src/lib/confirm';
 import { logPhoto } from '../src/lib/entries';
 import { newId } from '../src/lib/id';
 import { Button, Card } from '../src/components/ui';
@@ -54,9 +55,17 @@ export default function PetFormScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // A stale-render double tap runs save twice and queues two GO_BACKs —
+  // the second one is unhandled and warns. Guard the work, not the UI.
+  const savingRef = useRef(false);
+
+  // Seed the form once per pet. existing reloads on every data change
+  // (including background sync pulls); reseeding mid-edit would wipe input.
+  const [seededPetId, setSeededPetId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (existing) {
+    if (existing && existing.id !== seededPetId) {
+      setSeededPetId(existing.id);
       setName(existing.name);
       setSpecies(existing.species);
       setSex(existing.sex);
@@ -66,7 +75,7 @@ export default function PetFormScreen() {
       setStory(existing.story ?? '');
       setVetClinic(existing.vet_clinic ?? '');
     }
-  }, [existing]);
+  }, [existing, seededPetId]);
 
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -81,8 +90,13 @@ export default function PetFormScreen() {
   };
 
   const save = async () => {
+    if (savingRef.current) {
+      return;
+    }
+    savingRef.current = true;
     if (name.trim() === '') {
       setError(t('petForm.nameRequired'));
+      savingRef.current = false;
       return;
     }
     setError(null);
@@ -122,22 +136,23 @@ export default function PetFormScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'save failed');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
 
   const remove = () => {
-    Alert.alert(t('common.confirmDelete'), t('petForm.deleteConfirm', { name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () =>
-          void getRepository()
-            .then((repo) => repo.deletePetCascade(petId!))
-            .then(() => goBack(router)),
-      },
-    ]);
+    confirmAction({
+      title: t('common.confirmDelete'),
+      message: t('petForm.deleteConfirm', { name }),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      destructive: true,
+      onConfirm: () =>
+        void getRepository()
+          .then((repo) => repo.deletePetCascade(petId!))
+          .then(() => goBack(router)),
+    });
   };
 
   const pickerRow = (values: { value: string; label: string }[], selected: string, onSelect: (v: string) => void) => (

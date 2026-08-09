@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EVENT_KIND_META,
   isEventKind,
+  JOURNAL_KINDS,
   kindMeta,
   LOGGABLE_KINDS,
   QUICK_KINDS,
@@ -33,6 +34,14 @@ describe('catalog integrity', () => {
   it('every loggable and quick kind has metadata', () => {
     for (const kind of [...LOGGABLE_KINDS, ...QUICK_KINDS]) {
       expect(EVENT_KIND_META[kind], `missing meta for ${kind}`).toBeDefined();
+    }
+  });
+
+  it('journal kinds are a care-only subset of the loggable kinds', () => {
+    expect(JOURNAL_KINDS).toEqual(['feed', 'water', 'walk', 'potty', 'mood', 'photo', 'milestone']);
+    for (const kind of JOURNAL_KINDS) {
+      expect(LOGGABLE_KINDS).toContain(kind);
+      expect(EVENT_KIND_META[kind]?.chip).toBe('care');
     }
   });
 

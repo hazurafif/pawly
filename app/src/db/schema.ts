@@ -115,3 +115,17 @@ export function upsertSql(table: TableName): string {
     ON CONFLICT(id) DO UPDATE SET ${set}
     WHERE ${table}.updated_at < excluded.updated_at`;
 }
+
+// Upsert without the last-write-wins guard. Used for local tombstones only:
+// deletes are final, so a stale pulled row whose updated_at was clamped to
+// server time must never block the tombstone from applying.
+export function forceUpsertSql(table: TableName): string {
+  const cols = COLUMNS[table];
+  const set = cols
+    .filter((c) => c !== 'id')
+    .map((c) => `${c} = excluded.${c}`)
+    .join(', ');
+  return `INSERT INTO ${table} (${cols.join(', ')})
+    VALUES (${cols.map(() => '?').join(', ')})
+    ON CONFLICT(id) DO UPDATE SET ${set}`;
+}
