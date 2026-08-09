@@ -52,7 +52,8 @@
     "addEntry": "Catat sesuatu",
     "noResults": "Tidak ada catatan yang cocok",
     "favorite": "Favorit",
-    "unfavorite": "Hapus favorit"
+    "unfavorite": "Hapus favorit",
+    "clearSearch": "Hapus pencarian"
   },
   "health": {
     "title": "Kesehatan",
