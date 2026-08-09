@@ -30,12 +30,13 @@ export default function TabLayout() {
     </Link>
   );
 
-  // Journal/Health/Memories additionally show the active pet as a floating
-  // pill so you always know which pet you're logging into; tapping it
-  // switches pets.
-  const headerRightWithPetBadge = () => (
+  // One header-right container for every tab, so the settings button sits
+  // at the same distance from the screen edge everywhere. Journal/Health/
+  // Memories additionally show the active pet as a floating pill before it;
+  // tapping the pill switches pets.
+  const headerRight = (withPetBadge: boolean) => () => (
     <View style={styles.headerRight}>
-      <PetBadge />
+      {withPetBadge ? <PetBadge /> : null}
       {settingsButton()}
     </View>
   );
@@ -50,7 +51,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: [styles.tabBar, { bottom: Math.max(16, insets.bottom + 8) }],
         tabBarLabelStyle: { fontFamily: 'Roboto_500Medium' },
-        headerRight: settingsButton,
+        headerRight: headerRight(false),
       }}
     >
       <Tabs.Screen
@@ -66,7 +67,7 @@ export default function TabLayout() {
         name="journal"
         options={{
           title: t('tabs.journal'),
-          headerRight: () => headerRightWithPetBadge(),
+          headerRight: headerRight(true),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'book' : 'book-outline'} size={size} color={color} />
           ),
@@ -76,7 +77,7 @@ export default function TabLayout() {
         name="health"
         options={{
           title: t('tabs.health'),
-          headerRight: () => headerRightWithPetBadge(),
+          headerRight: headerRight(true),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'heart' : 'heart-outline'} size={size} color={color} />
           ),
@@ -86,7 +87,7 @@ export default function TabLayout() {
         name="memories"
         options={{
           title: t('tabs.memories'),
-          headerRight: () => headerRightWithPetBadge(),
+          headerRight: headerRight(true),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color} />
           ),
@@ -112,13 +113,13 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     ...shadow.md,
     elevation: 8,
   },
-  settingsButton: { marginRight: 16 },
+  settingsButton: {},
   settingsButtonPressed: { opacity: 0.6 },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginRight: 8,
+    marginRight: 16,
   },
   settingsBadge: {
     width: 36,
