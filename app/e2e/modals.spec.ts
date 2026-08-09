@@ -9,11 +9,11 @@ test.beforeEach(async ({ page }) => {
   await createPet(page);
 });
 
-test('entry-form header shows Log something, then Edit entry when editing', async ({ page }) => {
+test('entry-form header shows New entry, then Edit entry when editing', async ({ page }) => {
   await page.goto('/journal');
-  await page.getByRole('button', { name: 'Log something', exact: true }).click();
+  await page.getByRole('button', { name: 'New entry', exact: true }).click();
   await expect(page).toHaveURL(/entry-form/);
-  await expect(page.getByRole('heading', { name: 'Log something', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'New entry', exact: true })).toBeVisible();
 
   await page.getByText('Water', { exact: true }).click();
   await page.getByLabel('Note').fill('Bowl topped up');

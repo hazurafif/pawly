@@ -49,7 +49,7 @@
     "chipAll": "Semua",
     "chipCare": "Perawatan",
     "chipHealth": "Kesehatan",
-    "addEntry": "Catat sesuatu",
+    "addEntry": "Catatan baru",
     "noResults": "Tidak ada catatan yang cocok",
     "favorite": "Favorit",
     "unfavorite": "Hapus favorit",
@@ -134,7 +134,7 @@
     "estimated": "perkiraan"
   },
   "entry": {
-    "title": "Catat sesuatu",
+    "title": "Catatan baru",
     "editTitle": "Ubah catatan",
     "note": "Catatan",
     "occurredAt": "Tanggal",
@@ -189,10 +189,7 @@
     "lastWeight": "Terakhir dicatat",
     "details": "Rincian",
     "pickHint": "Apa yang baru dengan {{name}}?",
-    "checkinExists": "Sudah ada check-in untuk hari ini",
-    "pickGroupCare": "Perawatan harian",
-    "pickGroupHealth": "Kesehatan",
-    "pickGroupMemories": "Kenangan"
+    "checkinExists": "Sudah ada check-in untuk hari ini"
   },
   "reminder": {
     "title": "Pengingat",

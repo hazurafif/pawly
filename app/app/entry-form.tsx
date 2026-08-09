@@ -10,7 +10,7 @@ import { getRepository } from '../src/db/db';
 import { goBack } from '../src/lib/navigation';
 import { confirmAction } from '../src/lib/confirm';
 import { logEvent, logPhoto } from '../src/lib/entries';
-import { APPETITE_VALUES, MOOD_VALUES, PICK_GROUPS, kindMeta } from '../src/lib/catalog';
+import { APPETITE_VALUES, JOURNAL_KINDS, MOOD_VALUES, kindMeta } from '../src/lib/catalog';
 import { Button, Card, ChipGroup } from '../src/components/ui';
 import { DateField } from '../src/components/DateField';
 import {
@@ -240,40 +240,28 @@ export default function EntryFormScreen() {
             <Text style={styles.pickTitle}>
               {t('entry.pickHint', { name: activePet?.name ?? '' })}
             </Text>
-            {PICK_GROUPS.map((group) => (
-              <View key={group.key} style={styles.group}>
-                <Text style={styles.groupTitle}>
-                  {t(`entry.pickGroup${group.key.charAt(0).toUpperCase()}${group.key.slice(1)}` as never)}
-                </Text>
-                <View style={styles.kindGrid}>
-                  {group.kinds.map((k) => {
-                    const meta = kindMeta(k);
-                    return (
-                      <Pressable
-                        key={k}
-                        onPress={() => {
-                          setKind(k);
-                          setKindChosen(true);
-                        }}
-                        accessibilityRole="button"
-                        accessibilityLabel={t(`event.kinds.${k}` as never)}
-                        style={({ pressed }) => [styles.kindItem, pressed && styles.pressed]}
-                      >
-                        <View style={[styles.kindIcon, { backgroundColor: meta.color + '22' }]}>
-                          <Ionicons name={meta.icon as never} size={20} color={meta.color} />
-                        </View>
-                        <View style={styles.kindInfo}>
-                          <Text style={styles.kindLabel}>{t(`event.kinds.${k}` as never)}</Text>
-                          <Text style={styles.kindDesc} numberOfLines={1}>
-                            {t(`entry.hero.${k}` as never)}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-            ))}
+            <View style={styles.kindGrid}>
+              {JOURNAL_KINDS.map((k) => {
+                const meta = kindMeta(k);
+                return (
+                  <Pressable
+                    key={k}
+                    onPress={() => {
+                      setKind(k);
+                      setKindChosen(true);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(`event.kinds.${k}` as never)}
+                    style={({ pressed }) => [styles.kindItem, pressed && styles.pressed]}
+                  >
+                    <View style={[styles.kindIcon, { backgroundColor: meta.color + '22' }]}>
+                      <Ionicons name={meta.icon as never} size={22} color={meta.color} />
+                    </View>
+                    <Text style={styles.kindLabel}>{t(`event.kinds.${k}` as never)}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </Card>
         ) : null}
 
@@ -474,41 +462,28 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     fontFamily: 'Roboto_700Bold',
     color: colors.text,
     textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  group: { marginBottom: spacing.md },
-  groupTitle: {
-    fontSize: 12,
-    fontFamily: 'Roboto_700Bold',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    color: colors.textMuted,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   field: { marginBottom: spacing.md },
   kindGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kindItem: {
-    width: '48%',
+    width: '30%',
     flexGrow: 1,
-    flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xs,
     borderRadius: radius.md,
     backgroundColor: colors.surfaceMuted,
   },
   kindIcon: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
-  kindInfo: { flex: 1, minWidth: 0 },
-  kindLabel: { fontSize: 14, fontFamily: 'Roboto_700Bold', color: colors.text },
-  kindDesc: { fontFamily: 'Roboto_400Regular', fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  kindLabel: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, textAlign: 'center' },
   input: {
     backgroundColor: colors.surfaceMuted,
     borderRadius: radius.sm,

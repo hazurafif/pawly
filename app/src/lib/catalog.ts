@@ -35,17 +35,6 @@ export const LOGGABLE_KINDS: EventKind[] = [
   ...JOURNAL_KINDS, 'weight', 'med_given', 'vaccine', 'visit', 'symptom',
 ];
 
-// Kind picker sections shown when starting a new entry: friendly groupings
-// with the i18n suffix of the section title under `entry.pickGroup<key>`.
-export const PICK_GROUPS: { key: string; kinds: EventKind[] }[] = [
-  { key: 'care', kinds: ['feed', 'water', 'walk', 'potty', 'mood'] },
-  {
-    key: 'health',
-    kinds: ['checkin', 'symptom', 'med_given', 'vaccine', 'visit', 'weight', 'vet_bill'],
-  },
-  { key: 'memories', kinds: ['photo', 'milestone', 'task'] },
-];
-
 // Quick-log actions on Home.
 export const QUICK_KINDS: EventKind[] = ['feed', 'water', 'walk', 'potty'];
 
