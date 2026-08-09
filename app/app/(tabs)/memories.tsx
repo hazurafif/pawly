@@ -59,8 +59,6 @@ export default function MemoriesScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <SectionHeader icon="images-outline" title={t('memories.title')} />
-
       {!petId ? (
         <Card>
           <EmptyState icon="images-outline" text={t('home.petsEmpty')} />

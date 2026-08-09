@@ -98,15 +98,6 @@ export default function HealthScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <SectionHeader
-        icon="heart-outline"
-        title={t('health.title')}
-        action={{
-          label: t('common.edit'),
-          onPress: () => router.push(petId ? `/pet-form?id=${petId}` : '/pet-form'),
-        }}
-      />
-
       {!petId ? (
         <Card>
           <EmptyState icon="heart-outline" text={t('home.petsEmpty')} />
