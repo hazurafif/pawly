@@ -21,7 +21,7 @@ widgets. Pawly has none of those yet.
 
 ## Phases
 
-### Phase 1 — Complete the core value
+### Phase 1 — Complete the core value ✅ done
 
 | # | Feature | Problem | Solution | Scope | Effort |
 |---|---------|---------|----------|-------|--------|
@@ -29,7 +29,7 @@ widgets. Pawly has none of those yet.
 | 2 | Vet report export/share | 30-day report only viewable in-app — "walk into the vet with the report" is unfinished | Build markdown report, share via `expo-sharing` (native) / clipboard (web) | App-only | S–M |
 | 3 | Full pet profile + avatar | Competitors require breed, microchip, allergies, profile photo | New `pets` columns + `photos.pet_id` for avatar; schema migration on both sides (app migration + backend append-only migration, allow-lists in lockstep) | App + Backend | M |
 
-### Phase 2 — Strengthen health & memories
+### Phase 2 — Strengthen health & memories ✅ done
 
 | # | Feature | Notes | Effort |
 |---|---------|-------|--------|
