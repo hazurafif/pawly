@@ -270,7 +270,11 @@ export class Repository {
   // Text search across EVERY pet's journal (title + text), for the global
   // search mode of the Journal tab.
   async searchEvents(q: string): Promise<EventWithPet[]> {
-    const like = `%${q.trim()}%`;
+    const term = q.trim();
+    if (!term) {
+      return [];
+    }
+    const like = `%${term}%`;
     return this.db.all(
       `SELECT e.${COLUMNS.events.join(', e.')}, p.name AS pet_name
        FROM events e LEFT JOIN pets p ON p.id = e.pet_id AND p.deleted_at IS NULL
