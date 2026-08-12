@@ -201,7 +201,8 @@
     "lastWeight": "Last recorded",
     "details": "Details",
     "pickHint": "What’s new with {{name}}?",
-    "checkinExists": "Already checked in for this day"
+    "checkinExists": "Already checked in for this day",
+    "attachPhoto": "Attach photo"
   },
   "reminder": {
     "title": "Reminders",

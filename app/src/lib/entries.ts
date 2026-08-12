@@ -83,6 +83,30 @@ export async function logPhoto(
   return { eventId: eventRow.id, photoId };
 }
 
+// Attaches a photo to an EXISTING event (visit, vaccine, med, symptom...)
+// without creating a photo event of its own. The photo row links straight
+// to the event and syncs through the same pending/cache pipeline.
+export async function attachPhotoToEvent(
+  repo: Repository,
+  petId: string,
+  eventId: string,
+  fields: { uri: string; takenAt?: string }
+): Promise<{ photoId: string }> {
+  const now = toIsoMs(new Date());
+  const photoId = newId();
+  await repo.upsertLocal('photos', {
+    id: photoId,
+    event_id: eventId,
+    taken_at: fields.takenAt ?? now,
+    content_type: 'image/jpeg',
+    created_at: now,
+    updated_at: now,
+    deleted_at: null,
+  });
+  await repo.addPendingPhoto(photoId, fields.uri);
+  return { photoId };
+}
+
 export function petAgeLabel(pet: Pet): string | null {
   if (!pet.birth_date) {
     return null;

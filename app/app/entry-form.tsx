@@ -9,7 +9,7 @@ import { useRepoData } from '../src/hooks/useRepoData';
 import { getRepository } from '../src/db/db';
 import { goBack } from '../src/lib/navigation';
 import { confirmAction } from '../src/lib/confirm';
-import { logEvent, logPhoto } from '../src/lib/entries';
+import { attachPhotoToEvent, logEvent, logPhoto } from '../src/lib/entries';
 import { APPETITE_VALUES, JOURNAL_KINDS, MOOD_VALUES, kindMeta } from '../src/lib/catalog';
 import { Button, Card, ChipGroup } from '../src/components/ui';
 import { DateField } from '../src/components/DateField';
@@ -28,6 +28,10 @@ import { useAppColors } from '../src/hooks/useTheme';
 import type { Event } from '../src/db/types';
 
 const CARE_KINDS = ['feed', 'water', 'walk', 'potty'];
+
+// Kinds that can carry a photo attachment (medical records: the photo row
+// links to the event itself, no separate photo event).
+const ATTACH_KINDS = ['visit', 'vaccine', 'med_given', 'symptom'];
 
 export default function EntryFormScreen() {
   const { t } = useTranslation();
@@ -52,6 +56,7 @@ export default function EntryFormScreen() {
   const [mood, setMood] = useState('good');
   const [appetite, setAppetite] = useState('normal');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [existingPhotoUri, setExistingPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   // A stale-render double tap runs save twice and queues two GO_BACKs —
@@ -100,6 +105,7 @@ export default function EntryFormScreen() {
       const photos = await repo.photosForEvent(found.id);
       if (photos[0]?.local_uri) {
         setPhotoUri(photos[0].local_uri);
+        setExistingPhotoUri(photos[0].local_uri);
       }
     });
   }, [editingId]);
@@ -185,6 +191,15 @@ export default function EntryFormScreen() {
             occurred_at: occurredAtIso ?? found.occurred_at,
             updated_at: new Date().toISOString(),
           });
+          // Replacing the attached photo: tombstone the old row(s) and
+          // link a new one to the same event.
+          if (photoUri && photoUri !== existingPhotoUri) {
+            const photos = await repo.photosForEvent(found.id);
+            for (const p of photos) {
+              await repo.softDelete('photos', p.id);
+            }
+            await attachPhotoToEvent(repo, activePet.id, found.id, { uri: photoUri });
+          }
         }
       } else {
         const event = await logEvent(repo, activePet.id, kind, {
@@ -194,9 +209,12 @@ export default function EntryFormScreen() {
           occurredAt: occurredAtIso,
         });
         if (photoUri) {
-          await logPhoto(repo, activePet.id, { uri: photoUri, note: title.trim() || undefined });
+          if (kind === 'photo') {
+            await logPhoto(repo, activePet.id, { uri: photoUri, note: title.trim() || undefined });
+          } else if (ATTACH_KINDS.includes(kind)) {
+            await attachPhotoToEvent(repo, activePet.id, event.id, { uri: photoUri });
+          }
         }
-        void event;
       }
       goBack(router);
     } catch (e) {
@@ -424,9 +442,10 @@ export default function EntryFormScreen() {
                 </>
               ) : null}
 
-              {/* photo attached on other kinds (editing) */}
-              {photoUri && kind !== 'photo' && kind !== 'milestone' ? (
-                <PhotoPicker uri={photoUri} onPick={() => void pickPhoto()} label={t('entry.addPhoto')} />
+              {/* photo attachment on health kinds (visit/vaccine/med/symptom),
+                  and any existing attachment when editing */}
+              {kind !== 'photo' && kind !== 'milestone' && (ATTACH_KINDS.includes(kind) || photoUri) ? (
+                <PhotoPicker uri={photoUri} onPick={() => void pickPhoto()} label={t('entry.attachPhoto')} />
               ) : null}
 
             </>

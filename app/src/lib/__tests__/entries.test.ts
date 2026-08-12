@@ -3,7 +3,7 @@ import { migrate } from '../../db/schema';
 import { openTestDb } from '../../db/testDb';
 import { Repository } from '../../db/repository';
 import type { Db, Pet } from '../../db/types';
-import { logEvent, logPhoto, newEventRow, petAgeLabel } from '../entries';
+import { attachPhotoToEvent, logEvent, logPhoto, newEventRow, petAgeLabel } from '../entries';
 
 const mocks = vi.hoisted(() => {
   let n = 0;
@@ -117,6 +117,25 @@ describe('logEvent', () => {
     expect(stored.data).toBe(JSON.stringify({ grams: 50 }));
     const dirty = await repo.getDirtyRows();
     expect(dirty.some((d) => d.table === 'events' && d.row.id === row.id)).toBe(true);
+  });
+});
+
+describe('attachPhotoToEvent', () => {
+  it('links the photo to an existing event without creating an event', async () => {
+    const { db, repo } = await newRepo();
+    const event = await logEvent(repo, 'p-1', 'visit', { title: 'Checkup' });
+    const { photoId } = await attachPhotoToEvent(repo, 'p-1', event.id, {
+      uri: 'file:///tmp/visit.jpg',
+    });
+    const [ph] = await db.all(`SELECT * FROM photos WHERE id = ?`, [photoId]);
+    expect(ph.event_id).toBe(event.id);
+    expect(ph.taken_at).toBeTruthy();
+    expect(await repo.getPendingPhotos()).toEqual([{ id: photoId, localUri: 'file:///tmp/visit.jpg' }]);
+    // No photo event is created — only the original visit event exists.
+    const all = await db.all<{ kind: string }>(`SELECT * FROM events WHERE pet_id = 'p-1'`);
+    expect(all.map((e) => e.kind)).toEqual(['visit']);
+    const dirty = await repo.getDirtyRows();
+    expect(dirty.map((d) => `${d.table}:${d.row.id}`)).toContain(`photos:${photoId}`);
   });
 });
 

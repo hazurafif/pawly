@@ -201,7 +201,8 @@
     "lastWeight": "Terakhir dicatat",
     "details": "Rincian",
     "pickHint": "Apa yang baru dengan {{name}}?",
-    "checkinExists": "Sudah ada check-in untuk hari ini"
+    "checkinExists": "Sudah ada check-in untuk hari ini",
+    "attachPhoto": "Lampirkan foto"
   },
   "reminder": {
     "title": "Pengingat",
