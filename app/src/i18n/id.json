@@ -100,7 +100,10 @@
     "reportCopied": "Laporan disalin ke clipboard",
     "reportShareFailed": "Berbagi tidak tersedia di sini",
     "recentlyGiven": "Baru diberikan",
-    "logMed": "Catat obat"
+    "logMed": "Catat obat",
+    "expenses": "Pengeluaran",
+    "expensesTotal": "30 hari terakhir: {{total}} ({{count}} tagihan)",
+    "expensesHint": "Tagihan dokter dengan harga"
   },
   "memories": {
     "title": "Kenangan",
@@ -202,7 +205,10 @@
     "details": "Rincian",
     "pickHint": "Apa yang baru dengan {{name}}?",
     "checkinExists": "Sudah ada check-in untuk hari ini",
-    "attachPhoto": "Lampirkan foto"
+    "attachPhoto": "Lampirkan foto",
+    "price": "Harga",
+    "priceInvalid": "Masukkan nominal yang valid",
+    "billFor": "Tagihan untuk"
   },
   "reminder": {
     "title": "Pengingat",

@@ -8,7 +8,7 @@ import { useRepoData } from '../../src/hooks/useRepoData';
 import { Badge, Card, EmptyState, SectionHeader } from '../../src/components/ui';
 import { WeightChart } from '../../src/components/WeightChart';
 import { lastCompletionForRule, nextDueIso, ruleStatus } from '../../src/lib/rules';
-import { formatDate, weightKg } from '../../src/lib/format';
+import { formatDate, weightKg, billPrice, formatPrice } from '../../src/lib/format';
 import { MOOD_VALUES, kindMeta } from '../../src/lib/catalog';
 import type { Event, ReminderRule } from '../../src/db/types';
 import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
@@ -50,6 +50,9 @@ export default function HealthScreen() {
   );
   const { data: checkinEvents } = useRepoData((r) =>
     petId ? r.eventsForPet(petId, { kinds: ['checkin'] }) : Promise.resolve([] as Event[])
+  );
+  const { data: billEvents } = useRepoData((r) =>
+    petId ? r.eventsForPet(petId, { kinds: ['vet_bill'] }) : Promise.resolve([] as Event[])
   );
   const { data: medGiven } = useRepoData((r) =>
     petId ? r.eventsForPet(petId, { kinds: ['med_given'] }) : Promise.resolve([] as Event[])
@@ -331,6 +334,38 @@ export default function HealthScreen() {
               );
             })
           )}
+
+          {/* Expenses (vet bills, last 30 days) */}
+          {(() => {
+            const cutoff = Date.now() - 30 * 86_400_000;
+            const priced = (billEvents ?? []).filter((e) => {
+              const price = billPrice(e.data);
+              return price != null && Date.parse(e.occurred_at) >= cutoff;
+            });
+            if (priced.length === 0) {
+              return null;
+            }
+            const total = priced.reduce((sum, e) => sum + (billPrice(e.data) ?? 0), 0);
+            return (
+              <>
+                <SectionHeader icon="receipt-outline" title={t('health.expenses')} />
+                <Card style={styles.rowCard}>
+                  <View style={styles.rowIcon}>
+                    <Ionicons name="receipt-outline" size={18} color={colors.warningDeep} />
+                  </View>
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.rowTitle}>
+                      {t('health.expensesTotal', {
+                        total: formatPrice(total, locale),
+                        count: String(priced.length),
+                      })}
+                    </Text>
+                    <Text style={styles.rowSub}>{t('health.expensesHint')}</Text>
+                  </View>
+                </Card>
+              </>
+            );
+          })()}
 
           {/* Vet prep report */}
           <SectionHeader icon="document-text-outline" title={t('health.vetReport')} />

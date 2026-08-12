@@ -34,7 +34,7 @@ export const JOURNAL_KINDS: EventKind[] = [
 
 // Every kind offered by the type-driven "add entry" flow, in display order.
 export const LOGGABLE_KINDS: EventKind[] = [
-  ...JOURNAL_KINDS, 'weight', 'med_given', 'vaccine', 'visit', 'symptom',
+  ...JOURNAL_KINDS, 'weight', 'med_given', 'vaccine', 'visit', 'symptom', 'vet_bill',
 ];
 
 // Quick-log actions on Home.

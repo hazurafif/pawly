@@ -13,6 +13,8 @@ import {
   startOfTodayIso,
   toIsoMs,
   weightKg,
+  billPrice,
+  formatPrice,
 } from '../format';
 
 afterEach(() => {
@@ -178,5 +180,28 @@ describe('weightKg', () => {
     expect(weightKg('{}')).toBeNull();
     expect(weightKg('garbage')).toBeNull();
     expect(weightKg('{"kg":"4.3"}')).toBeNull();
+  });
+});
+
+describe('billPrice', () => {
+  it('reads a non-negative price from the event data', () => {
+    expect(billPrice('{"price":250000}')).toBe(250000);
+    expect(billPrice('{"price":0}')).toBe(0);
+  });
+
+  it('returns null for missing, malformed, or negative prices', () => {
+    expect(billPrice(null)).toBeNull();
+    expect(billPrice('{}')).toBeNull();
+    expect(billPrice('garbage')).toBeNull();
+    expect(billPrice('{"price":-5}')).toBeNull();
+    expect(billPrice('{"price":"100"}')).toBeNull();
+  });
+});
+
+describe('formatPrice', () => {
+  it('groups digits per locale', () => {
+    expect(formatPrice(250000, 'en')).toBe('250,000');
+    expect(formatPrice(250000, 'id')).toBe('250.000');
+    expect(formatPrice(1234, 'en')).toBe('1,234');
   });
 });

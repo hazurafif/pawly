@@ -159,3 +159,26 @@ export function weightKg(data: string | null): number | null {
   }
   return null;
 }
+
+// Vet-bill amount from the event data JSON, e.g. { price: 250000 }.
+export function billPrice(data: string | null): number | null {
+  if (!data) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(data) as { price?: unknown };
+    if (typeof parsed.price === 'number' && Number.isFinite(parsed.price) && parsed.price >= 0) {
+      return parsed.price;
+    }
+  } catch {
+    // malformed payload — treat as absent
+  }
+  return null;
+}
+
+// Groups a money amount with the locale's digit separators (no symbol).
+export function formatPrice(amount: number, locale: string): string {
+  return new Intl.NumberFormat(locale === 'id' ? 'id-ID' : 'en-US', {
+    maximumFractionDigits: 0,
+  }).format(amount);
+}

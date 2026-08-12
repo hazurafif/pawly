@@ -55,6 +55,7 @@ export default function EntryFormScreen() {
   const [severity, setSeverity] = useState('moderate');
   const [mood, setMood] = useState('good');
   const [appetite, setAppetite] = useState('normal');
+  const [price, setPrice] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [existingPhotoUri, setExistingPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +99,7 @@ export default function EntryFormScreen() {
           if (typeof d.score === 'number') setMood(MOOD_VALUES[Math.max(0, Math.min(MOOD_VALUES.length - 1, d.score - 1))]);
           if (typeof d.appetite === 'string') setAppetite(d.appetite);
           if (typeof d.kg === 'number') setWeight(String(d.kg));
+          if (typeof d.price === 'number') setPrice(String(d.price));
         } catch {
           // malformed payload — keep defaults
         }
@@ -157,6 +159,15 @@ export default function EntryFormScreen() {
         data = dose.trim() ? { dose: dose.trim() } : {};
       } else if (kind === 'symptom') {
         data = { severity };
+      } else if (kind === 'vet_bill') {
+        if (price.trim()) {
+          const amount = Number(price.replace(',', '.'));
+          if (!Number.isFinite(amount) || amount < 0) {
+            setError(t('entry.priceInvalid'));
+            return;
+          }
+          data = { price: amount };
+        }
       } else if (kind === 'mood') {
         data = { score: MOOD_VALUES.indexOf(mood as (typeof MOOD_VALUES)[number]) + 1 };
       } else if (kind === 'checkin') {
@@ -413,6 +424,35 @@ export default function EntryFormScreen() {
                   </View>
                   <View style={styles.field}>
                     <FieldLabel>{t('entry.details')}</FieldLabel>
+                    {noteInput(true)}
+                  </View>
+                </>
+              ) : null}
+
+              {/* ── vet bill: what for + amount ── */}
+              {kind === 'vet_bill' ? (
+                <>
+                  <View style={styles.field}>
+                    <FieldLabel>{t('entry.billFor')}</FieldLabel>
+                    <TextInput
+                      value={title}
+                      onChangeText={setTitle}
+                      style={styles.input}
+                      accessibilityLabel={t('entry.billFor')}
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <FieldLabel>{t('entry.price')}</FieldLabel>
+                    <TextInput
+                      value={price}
+                      onChangeText={setPrice}
+                      keyboardType="decimal-pad"
+                      style={styles.input}
+                      accessibilityLabel={t('entry.price')}
+                    />
+                  </View>
+                  <View style={styles.field}>
+                    <FieldLabel>{t('entry.note')}</FieldLabel>
                     {noteInput(true)}
                   </View>
                 </>

@@ -100,7 +100,10 @@
     "reportCopied": "Report copied to clipboard",
     "reportShareFailed": "Sharing isn't available here",
     "recentlyGiven": "Recently given",
-    "logMed": "Log med"
+    "logMed": "Log med",
+    "expenses": "Expenses",
+    "expensesTotal": "Last 30 days: {{total}} ({{count}} bills)",
+    "expensesHint": "Vet bills with a price"
   },
   "memories": {
     "title": "Memories",
@@ -202,7 +205,10 @@
     "details": "Details",
     "pickHint": "What’s new with {{name}}?",
     "checkinExists": "Already checked in for this day",
-    "attachPhoto": "Attach photo"
+    "attachPhoto": "Attach photo",
+    "price": "Price",
+    "priceInvalid": "Enter a valid amount",
+    "billFor": "Bill for"
   },
   "reminder": {
     "title": "Reminders",
