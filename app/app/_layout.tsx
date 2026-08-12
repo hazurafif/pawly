@@ -5,9 +5,16 @@ import { useFonts } from 'expo-font';
 import { useTranslation } from 'react-i18next';
 import { SyncProvider } from '../src/hooks/useSync';
 import { ActivePetProvider } from '../src/hooks/useActivePet';
+import { useReminderNotifications } from '../src/hooks/useReminderNotifications';
 import { ToastProvider } from '../src/components/Toast';
 import { ThemeProvider, useAppColors } from '../src/hooks/useTheme';
 import '../src/i18n';
+
+// Schedules OS notifications from reminder rules (no-op on web).
+function NotificationSync() {
+  useReminderNotifications();
+  return null;
+}
 
 function RootStack() {
   const scheme = useColorScheme();
@@ -52,6 +59,7 @@ export default function RootLayout() {
       <ActivePetProvider>
         <ThemeProvider>
           <ToastProvider>
+            <NotificationSync />
             <RootStack />
           </ToastProvider>
         </ThemeProvider>
