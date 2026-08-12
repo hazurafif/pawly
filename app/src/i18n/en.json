@@ -94,6 +94,11 @@
     "reportVaccines": "Vaccine status",
     "reportNoSymptoms": "No symptoms recorded",
     "reportNoMeds": "No medications given",
+    "reportVisits": "Vet visits",
+    "reportUpcoming": "Upcoming reminders",
+    "shareReport": "Share report",
+    "reportCopied": "Report copied to clipboard",
+    "reportShareFailed": "Sharing isn't available here",
     "recentlyGiven": "Recently given",
     "logMed": "Log med"
   },

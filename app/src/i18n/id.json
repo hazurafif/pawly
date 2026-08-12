@@ -94,6 +94,11 @@
     "reportVaccines": "Status vaksin",
     "reportNoSymptoms": "Tidak ada gejala tercatat",
     "reportNoMeds": "Tidak ada obat diberikan",
+    "reportVisits": "Kunjungan dokter",
+    "reportUpcoming": "Pengingat mendatang",
+    "shareReport": "Bagikan laporan",
+    "reportCopied": "Laporan disalin ke clipboard",
+    "reportShareFailed": "Berbagi tidak tersedia di sini",
     "recentlyGiven": "Baru diberikan",
     "logMed": "Catat obat"
   },

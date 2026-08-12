@@ -2,11 +2,16 @@ import { useMemo } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useActivePet } from '../src/hooks/useActivePet';
 import { useRepoData } from '../src/hooks/useRepoData';
-import { Card, EmptyState, SectionHeader } from '../src/components/ui';
+import { useToast } from '../src/components/Toast';
+import { Button, Card, EmptyState, SectionHeader } from '../src/components/ui';
 import { MOOD_VALUES } from '../src/lib/catalog';
-import { formatDate, weightKg } from '../src/lib/format';
+import { formatDate, formatTime, weightKg } from '../src/lib/format';
+import { lastCompletionForRule, nextDueIso, ruleStatus } from '../src/lib/rules';
+import { reportMarkdown, type ReportData } from '../src/lib/report';
+import { shareText } from '../src/lib/share';
 import type { Event } from '../src/db/types';
 import { radius, spacing, type Palette } from '../src/lib/theme';
 import { useAppColors } from '../src/hooks/useTheme';
@@ -15,10 +20,30 @@ function sinceIso(daysAgo: number): string {
   return new Date(Date.now() - daysAgo * 86_400_000).toISOString();
 }
 
+// Human summary of a daily check-in: mood score + appetite, if present.
+function checkinSummary(e: Event, t: TFunction): string {
+  let summary = t('event.kinds.checkin');
+  if (e.data) {
+    try {
+      const d = JSON.parse(e.data) as Record<string, unknown>;
+      if (typeof d.score === 'number' && d.score > 0) {
+        summary = t(`mood.${MOOD_VALUES[Math.min(MOOD_VALUES.length - 1, d.score - 1)]}`);
+      }
+      if (typeof d.appetite === 'string') {
+        summary += ` · ${t(`entry.appetite${d.appetite[0].toUpperCase()}${d.appetite.slice(1)}`)}`;
+      }
+    } catch {
+      // ignore malformed payload
+    }
+  }
+  return summary;
+}
+
 export default function VetReportScreen() {
   const colors = useAppColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
   const locale = i18n.language === 'id' ? 'id' : 'en';
   const { activePet } = useActivePet();
   const petId = activePet?.id ?? null;
@@ -47,6 +72,47 @@ export default function VetReportScreen() {
     return { weights, checkins, symptoms, meds, visits, total: list.length };
   }, [events]);
 
+  const share = async () => {
+    if (!activePet) {
+      return;
+    }
+    const list = events ?? [];
+    const upcoming = (rules ?? []).map((r) => {
+      const next = nextDueIso(r, lastCompletionForRule(list, r.id));
+      const status = ruleStatus(next, new Date().toISOString());
+      const when = status === 'overdue' ? t('health.overdue') : next ? formatTime(next) : '';
+      return { at: when, text: r.title };
+    });
+    const data: ReportData = {
+      petName: activePet.name,
+      periodLabel: `${t('health.reportPeriod')} · ${formatDate(sinceIso(30), locale)} → ${formatDate(new Date().toISOString(), locale)}`,
+      weights: report.weights.map((w) => ({ at: formatDate(w.at, locale), text: `${w.kg} kg` })),
+      checkins: report.checkins.map((e) => ({ at: formatDate(e.occurred_at, locale), text: checkinSummary(e, t) })),
+      symptoms: report.symptoms.map((e) => ({ at: formatDate(e.occurred_at, locale), text: e.title || t('event.kinds.symptom') })),
+      meds: report.meds.map((e) => ({ at: formatDate(e.occurred_at, locale), text: e.title || t('event.kinds.med_given') })),
+      vaccines: (allVaccines ?? []).map((e) => ({ at: formatDate(e.occurred_at, locale), text: e.title || t('event.kinds.vaccine') })),
+      visits: report.visits.map((e) => ({ at: formatDate(e.occurred_at, locale), text: e.title || t('event.kinds.visit') })),
+      upcoming,
+    };
+    const markdown = reportMarkdown(data, {
+      title: t('health.reportTitle', { name: activePet.name }),
+      weight: t('health.reportWeight'),
+      checkins: t('health.reportCheckins'),
+      symptoms: t('health.reportSymptoms'),
+      meds: t('health.reportMeds'),
+      vaccines: t('health.reportVaccines'),
+      visits: t('health.reportVisits'),
+      upcoming: t('health.reportUpcoming'),
+    });
+    const filename = `pawly-report-${activePet.name.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.md`;
+    const result = await shareText(markdown, filename);
+    if (result === 'copied') {
+      showToast({ message: t('health.reportCopied') });
+    } else if (result === 'unsupported') {
+      showToast({ message: t('health.reportShareFailed') });
+    }
+  };
+
   if (!activePet) {
     return (
       <View style={styles.center}>
@@ -63,6 +129,14 @@ export default function VetReportScreen() {
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.heading}>{t('health.reportTitle', { name: activePet.name })}</Text>
       <Text style={styles.period}>{t('health.reportPeriod')} · {formatDate(sinceIso(30), locale)} → today</Text>
+      {hasData ? (
+        <Button
+          label={t('health.shareReport')}
+          onPress={() => void share()}
+          variant="secondary"
+          icon="share-outline"
+        />
+      ) : null}
 
       {events === null ? (
         <ActivityIndicator color={colors.primary} style={styles.loading} />
@@ -99,20 +173,7 @@ export default function VetReportScreen() {
               <Text style={styles.muted}>{t('health.checkinsEmpty')}</Text>
             ) : (
               report.checkins.map((e) => {
-                let summary = t('event.kinds.checkin');
-                if (e.data) {
-                  try {
-                    const d = JSON.parse(e.data) as Record<string, unknown>;
-                    if (typeof d.score === 'number' && d.score > 0) {
-                      summary = t(`mood.${MOOD_VALUES[Math.min(MOOD_VALUES.length - 1, d.score - 1)]}`);
-                    }
-                    if (typeof d.appetite === 'string') {
-                      summary += ` · ${t(`entry.appetite${d.appetite[0].toUpperCase()}${d.appetite.slice(1)}`)}`;
-                    }
-                  } catch {
-                    // ignore malformed payload
-                  }
-                }
+                const summary = checkinSummary(e, t);
                 return (
                   <View key={e.id} style={styles.line}>
                     <Text style={styles.lineText}>{formatDate(e.occurred_at, locale)}</Text>
