@@ -187,7 +187,9 @@
       "photo": "Abadikan momennya",
       "milestone": "Momen untuk dikenang",
       "task": "Pengingat selesai",
-      "vet_bill": "Tagihan dokter"
+      "vet_bill": "Tagihan dokter",
+      "grooming": "Waktu bersih-bersih",
+      "dental": "Gigi & napas"
     },
     "presetBreakfast": "Sarapan",
     "presetLunch": "Makan siang",
@@ -260,7 +262,9 @@
       "photo": "Foto",
       "milestone": "Pencapaian",
       "task": "Pengingat selesai",
-      "vet_bill": "Tagihan dokter"
+      "vet_bill": "Tagihan dokter",
+      "grooming": "Perawatan bulu",
+      "dental": "Perawatan gigi"
     }
   },
   "mood": {
@@ -275,6 +279,7 @@
     "med": "Obat",
     "groom": "Perawatan",
     "flea": "Kutu & cacing",
-    "other": "Lainnya"
+    "other": "Lainnya",
+    "dental": "Perawatan gigi"
   }
 }

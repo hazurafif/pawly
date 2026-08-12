@@ -14,7 +14,7 @@ import type { Event, PhotoWithUri } from '../../src/db/types';
 import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
 import { useAppColors } from '../../src/hooks/useTheme';
 
-const CARE_KINDS = ['feed', 'water', 'walk', 'potty', 'mood', 'photo', 'milestone', 'task'];
+const CARE_KINDS = ['feed', 'water', 'walk', 'potty', 'mood', 'photo', 'milestone', 'task', 'grooming', 'dental'];
 const HEALTH_KINDS = ['checkin', 'symptom', 'med_given', 'vaccine', 'visit', 'weight', 'vet_bill'];
 
 type ChipKey = 'all' | 'care' | 'health';

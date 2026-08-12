@@ -39,7 +39,7 @@ describe('catalog integrity', () => {
 
   it('journal kinds are a care-only subset of the loggable kinds', () => {
     // Milestone moved to the Memories tab; health kinds live on Health.
-    expect(JOURNAL_KINDS).toEqual(['feed', 'water', 'walk', 'potty', 'mood', 'photo']);
+    expect(JOURNAL_KINDS).toEqual(['feed', 'water', 'walk', 'potty', 'mood', 'photo', 'grooming', 'dental']);
     expect(JOURNAL_KINDS).not.toContain('milestone');
     for (const kind of JOURNAL_KINDS) {
       expect(LOGGABLE_KINDS).toContain(kind);

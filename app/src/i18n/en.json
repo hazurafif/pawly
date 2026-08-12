@@ -187,7 +187,9 @@
       "photo": "Capture the moment",
       "milestone": "A moment to remember",
       "task": "Reminder completed",
-      "vet_bill": "Vet bill"
+      "vet_bill": "Vet bill",
+      "grooming": "Pampering time",
+      "dental": "Teeth & breath"
     },
     "presetBreakfast": "Breakfast",
     "presetLunch": "Lunch",
@@ -260,7 +262,9 @@
       "photo": "Photo",
       "milestone": "Milestone",
       "task": "Reminder done",
-      "vet_bill": "Vet bill"
+      "vet_bill": "Vet bill",
+      "grooming": "Grooming",
+      "dental": "Dental care"
     }
   },
   "mood": {
@@ -275,6 +279,7 @@
     "med": "Medication",
     "groom": "Grooming",
     "flea": "Flea & worm",
+    "dental": "Dental care",
     "other": "Other"
   }
 }

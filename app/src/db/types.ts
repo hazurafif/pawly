@@ -44,6 +44,7 @@ export type Species = (typeof SPECIES)[number];
 export const EVENT_KINDS = [
   'feed', 'water', 'walk', 'potty', 'mood', 'checkin', 'symptom', 'med_given',
   'vaccine', 'visit', 'weight', 'photo', 'milestone', 'task', 'vet_bill',
+  'grooming', 'dental',
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 

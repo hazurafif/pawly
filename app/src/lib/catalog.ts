@@ -21,13 +21,15 @@ export const EVENT_KIND_META: Record<
   milestone: { icon: 'star-outline', color: '#B08446', chip: 'care' },
   task: { icon: 'checkmark-circle-outline', color: '#4F8F7D', chip: 'care' },
   vet_bill: { icon: 'receipt-outline', color: '#7E7E84', chip: 'health' },
+  grooming: { icon: 'cut-outline', color: '#8C6FA8', chip: 'care' },
+  dental: { icon: 'sparkles-outline', color: '#5FA8A8', chip: 'care' },
 };
 
 // Journal (care) kinds offered by the "add entry" flow on the Journal tab.
 // Health kinds (weight, vaccine, med, visit, symptom) are added from the
 // Health tab; milestones are added from the Memories tab.
 export const JOURNAL_KINDS: EventKind[] = [
-  'feed', 'water', 'walk', 'potty', 'mood', 'photo',
+  'feed', 'water', 'walk', 'potty', 'mood', 'photo', 'grooming', 'dental',
 ];
 
 // Every kind offered by the type-driven "add entry" flow, in display order.
@@ -55,7 +57,7 @@ export function kindMeta(kind: string) {
   return isEventKind(kind) ? EVENT_KIND_META[kind] : OTHER_KIND_META;
 }
 
-export const RULE_KINDS = ['vaccine', 'med', 'groom', 'flea', 'other'] as const;
+export const RULE_KINDS = ['vaccine', 'med', 'groom', 'flea', 'dental', 'other'] as const;
 export type RuleKind = (typeof RULE_KINDS)[number];
 
 export const RULE_KIND_META: Record<RuleKind, { icon: string }> = {
@@ -63,6 +65,7 @@ export const RULE_KIND_META: Record<RuleKind, { icon: string }> = {
   med: { icon: 'bandage-outline' },
   groom: { icon: 'cut-outline' },
   flea: { icon: 'bug-outline' },
+  dental: { icon: 'sparkles-outline' },
   other: { icon: 'alarm-outline' },
 };
 
