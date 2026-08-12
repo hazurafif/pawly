@@ -137,6 +137,9 @@
     "neuteredUnknown": "Unknown",
     "story": "Story",
     "vetClinic": "Vet clinic",
+    "breed": "Breed",
+    "microchip": "Microchip",
+    "allergies": "Allergies",
     "deleteConfirm": "Delete {{name}}? This removes their journal, health records, photos, and reminders from all devices.",
     "estimated": "estimated"
   },

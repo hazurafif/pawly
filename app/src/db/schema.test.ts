@@ -16,7 +16,7 @@ describe('migrate', () => {
       expect(row, `table ${tbl} should exist`).not.toBeNull();
     }
     const v = await db.first<{ user_version: number }>('PRAGMA user_version');
-    expect(v?.user_version).toBe(1);
+    expect(v?.user_version).toBe(2);
   });
 
   it('is idempotent', async () => {
@@ -24,7 +24,15 @@ describe('migrate', () => {
     await migrate(db);
     await migrate(db);
     const v = await db.first<{ user_version: number }>('PRAGMA user_version');
-    expect(v?.user_version).toBe(1);
+    expect(v?.user_version).toBe(2);
+  });
+
+  it('adds the pet profile columns', async () => {
+    const db = await openTestDb();
+    await migrate(db);
+    const cols = await db.all<{ name: string }>(`PRAGMA table_info(pets)`);
+    const names = cols.map((c) => c.name);
+    expect(names).toEqual(expect.arrayContaining(['breed', 'microchip', 'allergies']));
   });
 });
 

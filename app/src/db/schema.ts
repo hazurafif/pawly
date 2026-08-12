@@ -80,7 +80,13 @@ CREATE TABLE sync_state (
 );
 `;
 
-const MIGRATIONS = [MIGRATION_1];
+const MIGRATION_2 = `
+ALTER TABLE pets ADD COLUMN breed TEXT;
+ALTER TABLE pets ADD COLUMN microchip TEXT;
+ALTER TABLE pets ADD COLUMN allergies TEXT;
+`;
+
+const MIGRATIONS = [MIGRATION_1, MIGRATION_2];
 
 export async function migrate(db: Db): Promise<void> {
   const row = await db.first<{ user_version: number }>('PRAGMA user_version');

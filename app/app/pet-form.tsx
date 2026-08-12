@@ -54,6 +54,9 @@ export default function PetFormScreen() {
   const [neutered, setNeutered] = useState('unknown');
   const [story, setStory] = useState('');
   const [vetClinic, setVetClinic] = useState('');
+  const [breed, setBreed] = useState('');
+  const [microchip, setMicrochip] = useState('');
+  const [allergies, setAllergies] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [existingPhotoUri, setExistingPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +80,9 @@ export default function PetFormScreen() {
       setNeutered(existing.is_neutered);
       setStory(existing.story ?? '');
       setVetClinic(existing.vet_clinic ?? '');
+      setBreed(existing.breed ?? '');
+      setMicrochip(existing.microchip ?? '');
+      setAllergies(existing.allergies ?? '');
       // Show the current photo when editing so it can be replaced.
       void getRepository()
         .then((r) => r.latestPhotoForPet(existing.id))
@@ -136,6 +142,9 @@ export default function PetFormScreen() {
         status: existing?.status ?? 'alive',
         passed_away_date: existing?.passed_away_date ?? null,
         vet_clinic: vetClinic.trim() || null,
+        breed: breed.trim() || null,
+        microchip: microchip.trim() || null,
+        allergies: allergies.trim() || null,
         created_at: base.created_at!,
         updated_at: now,
         deleted_at: null,
@@ -223,6 +232,33 @@ export default function PetFormScreen() {
           onChangeText={setVetClinic}
           style={styles.input}
           accessibilityLabel={t('petForm.vetClinic')}
+        />
+
+        <Text style={styles.label}>{t('petForm.breed')}</Text>
+        <TextInput
+          value={breed}
+          onChangeText={setBreed}
+          placeholder="Persian · Golden Retriever"
+          style={styles.input}
+          accessibilityLabel={t('petForm.breed')}
+        />
+
+        <Text style={styles.label}>{t('petForm.microchip')}</Text>
+        <TextInput
+          value={microchip}
+          onChangeText={setMicrochip}
+          placeholder="000-000-000-000"
+          style={styles.input}
+          accessibilityLabel={t('petForm.microchip')}
+        />
+
+        <Text style={styles.label}>{t('petForm.allergies')}</Text>
+        <TextInput
+          value={allergies}
+          onChangeText={setAllergies}
+          placeholder="Chicken · dust mites"
+          style={styles.input}
+          accessibilityLabel={t('petForm.allergies')}
         />
 
         <Text style={styles.label}>{t('petForm.story')}</Text>

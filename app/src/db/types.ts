@@ -13,7 +13,8 @@ export const COLUMNS: Record<TableName, readonly string[]> = {
   pets: [
     'id', 'name', 'species', 'sex', 'birth_date', 'birth_date_is_estimated',
     'rescue_date', 'rescue_date_is_estimated', 'is_neutered', 'story', 'status',
-    'passed_away_date', 'vet_clinic', 'created_at', 'updated_at', 'deleted_at',
+    'passed_away_date', 'vet_clinic', 'breed', 'microchip', 'allergies',
+    'created_at', 'updated_at', 'deleted_at',
   ],
   events: [
     'id', 'pet_id', 'kind', 'title', 'text', 'occurred_at', 'next_due_at',
@@ -63,6 +64,9 @@ export interface Pet {
   status: string;
   passed_away_date: string | null;
   vet_clinic: string | null;
+  breed: string | null;
+  microchip: string | null;
+  allergies: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

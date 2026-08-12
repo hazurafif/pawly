@@ -106,6 +106,36 @@ export default function HealthScreen() {
         <ActivityIndicator color={colors.primary} style={styles.loading} />
       ) : (
         <>
+          {/* Pet profile snapshot */}
+          {activePet && (activePet.breed || activePet.microchip || activePet.allergies || activePet.vet_clinic) ? (
+            <Card style={styles.profileCard}>
+              {activePet.breed ? (
+                <View style={styles.profileLine}>
+                  <Ionicons name="paw-outline" size={16} color={colors.textMuted} />
+                  <Text style={styles.profileText}>{activePet.breed}</Text>
+                </View>
+              ) : null}
+              {activePet.microchip ? (
+                <View style={styles.profileLine}>
+                  <Ionicons name="finger-print-outline" size={16} color={colors.textMuted} />
+                  <Text style={styles.profileText}>{t('petForm.microchip')}: {activePet.microchip}</Text>
+                </View>
+              ) : null}
+              {activePet.allergies ? (
+                <View style={styles.profileLine}>
+                  <Ionicons name="warning-outline" size={16} color={colors.warningDeep} />
+                  <Text style={styles.profileText}>{t('petForm.allergies')}: {activePet.allergies}</Text>
+                </View>
+              ) : null}
+              {activePet.vet_clinic ? (
+                <View style={styles.profileLine}>
+                  <Ionicons name="medkit-outline" size={16} color={colors.textMuted} />
+                  <Text style={styles.profileText}>{t('petForm.vetClinic')}: {activePet.vet_clinic}</Text>
+                </View>
+              ) : null}
+            </Card>
+          ) : null}
+
           {/* Weight */}
           <SectionHeader
             icon="scale-outline"
@@ -329,6 +359,9 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: tabBarClearance },
   loading: { marginTop: spacing.xl },
+  profileCard: { gap: spacing.sm, marginBottom: spacing.sm },
+  profileLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  profileText: { flex: 1, fontSize: 14, color: colors.text, fontFamily: 'Roboto_500Medium' },
   weightRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   weightValue: { fontSize: 28, fontFamily: 'Roboto_700Bold', color: colors.text },
   alert: {

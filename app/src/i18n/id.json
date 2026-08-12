@@ -137,6 +137,9 @@
     "neuteredUnknown": "Tidak tahu",
     "story": "Cerita",
     "vetClinic": "Klinik dokter hewan",
+    "breed": "Ras",
+    "microchip": "Microchip",
+    "allergies": "Alergi",
     "deleteConfirm": "Hapus {{name}}? Jurnal, catatan kesehatan, foto, dan pengingat mereka akan dihapus dari semua perangkat.",
     "estimated": "perkiraan"
   },
