@@ -8,11 +8,13 @@ import { useRepoData } from '../../src/hooks/useRepoData';
 import { getRepository } from '../../src/db/db';
 import { Chip, EmptyState } from '../../src/components/ui';
 import { Fab } from '../../src/components/ui';
+import { CalendarView } from '../../src/components/CalendarView';
 import { kindMeta } from '../../src/lib/catalog';
-import { dayKeyOfIso, formatTime, relativeDayLabel, weightKg } from '../../src/lib/format';
+import { addMonths, todayPosition } from '../../src/lib/calendar';
+import { dayKeyOfIso, formatDate, formatMonth, formatTime, relativeDayLabel, weightKg } from '../../src/lib/format';
 import type { Event, EventWithPet, PhotoWithUri } from '../../src/db/types';
 import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
-import { useAppColors } from '../../src/hooks/useTheme';
+import { useAppColors, useStyles } from '../../src/hooks/useTheme';
 
 const CARE_KINDS = ['feed', 'water', 'walk', 'potty', 'mood', 'photo', 'milestone', 'task', 'grooming', 'dental'];
 const HEALTH_KINDS = ['checkin', 'symptom', 'med_given', 'vaccine', 'visit', 'weight', 'vet_bill'];
@@ -40,6 +42,81 @@ function eventSummary(e: Event): string | null {
     }
   }
   return e.text;
+}
+
+// One journal row (shared by list and calendar modes). The heart is a
+// sibling of the row button — a <button> nested inside another <button>
+// would be invalid HTML on web.
+function EntryRow({
+  e,
+  photo,
+  showPetName,
+}: {
+  e: Event | EventWithPet;
+  photo?: PhotoWithUri;
+  showPetName: boolean;
+}) {
+  const { t } = useTranslation();
+  const colors = useAppColors();
+  const styles = useStyles(createStyles);
+  const router = useRouter();
+  const meta = kindMeta(e.kind);
+
+  const toggleFavorite = () => {
+    const next = e.favorite !== 1;
+    void getRepository()
+      .then((repo) => repo.setFavorite(e.id, next))
+      .catch(() => {
+        // Revert the optimistic toggle when the write fails.
+        void getRepository().then((repo) => repo.setFavorite(e.id, e.favorite === 1));
+      });
+  };
+
+  return (
+    <View style={styles.row}>
+      <Pressable
+        onPress={() => router.push(`/entry-form?id=${e.id}`)}
+        accessibilityRole="button"
+        accessibilityLabel={eventTitle(t, e)}
+        style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
+      >
+        <View style={[styles.icon, { backgroundColor: meta.color + '22' }]}>
+          <Ionicons name={meta.icon as never} size={20} color={meta.color} />
+        </View>
+        <View style={styles.info}>
+          <Text style={styles.title} numberOfLines={1}>
+            {eventTitle(t, e)}
+          </Text>
+          {eventSummary(e) ? (
+            <Text style={styles.summary} numberOfLines={1}>
+              {eventSummary(e)}
+            </Text>
+          ) : null}
+          <Text style={styles.meta}>
+            {showPetName && 'pet_name' in e && e.pet_name
+              ? `${e.pet_name} · ${formatTime(e.occurred_at)}`
+              : formatTime(e.occurred_at)}
+          </Text>
+        </View>
+        {photo?.local_uri ? (
+          <Image source={{ uri: photo.local_uri }} style={styles.thumb} accessibilityIgnoresInvertColors />
+        ) : null}
+      </Pressable>
+      <Pressable
+        onPress={toggleFavorite}
+        accessibilityRole="button"
+        accessibilityLabel={e.favorite === 1 ? t('journal.unfavorite') : t('journal.favorite')}
+        hitSlop={10}
+        style={styles.heart}
+      >
+        <Ionicons
+          name={e.favorite === 1 ? 'heart' : 'heart-outline'}
+          size={20}
+          color={e.favorite === 1 ? colors.error : colors.textMuted}
+        />
+      </Pressable>
+    </View>
+  );
 }
 
 export default function JournalScreen() {
@@ -102,15 +179,26 @@ export default function JournalScreen() {
     return [...map.entries()];
   }, [filtered]);
 
-  const toggleFavorite = (e: Event) => {
-    const next = e.favorite !== 1;
-    void getRepository()
-      .then((repo) => repo.setFavorite(e.id, next))
-      .catch(() => {
-        // Revert the optimistic toggle when the write fails.
-        void getRepository().then((repo) => repo.setFavorite(e.id, e.favorite === 1));
-      });
-  };
+  // Calendar mode: which day keys have entries, and the selected day's rows.
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [calPos, setCalPos] = useState(todayPosition);
+  const [selDay, setSelDay] = useState<string | null>(null);
+
+  const markedDays = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of filtered) {
+      const key = dayKeyOfIso(e.occurred_at);
+      if (key) {
+        set.add(key);
+      }
+    }
+    return set;
+  }, [filtered]);
+
+  const dayEntries = useMemo(
+    () => (selDay ? filtered.filter((e) => dayKeyOfIso(e.occurred_at) === selDay) : []),
+    [filtered, selDay]
+  );
 
   return (
     <View style={styles.screen}>
@@ -137,6 +225,28 @@ export default function JournalScreen() {
               <Ionicons name="close-circle" size={18} color={colors.textMuted} />
             </Pressable>
           ) : null}
+          <View style={styles.viewToggle}>
+            <Pressable
+              onPress={() => setView('list')}
+              accessibilityRole="button"
+              accessibilityLabel={t('journal.viewList')}
+              accessibilityState={{ selected: view === 'list' }}
+              hitSlop={6}
+              style={({ pressed }) => [styles.viewBtn, view === 'list' && styles.viewBtnActive, pressed && styles.pressed]}
+            >
+              <Ionicons name="list" size={17} color={view === 'list' ? colors.primaryDeep : colors.textMuted} />
+            </Pressable>
+            <Pressable
+              onPress={() => setView('calendar')}
+              accessibilityRole="button"
+              accessibilityLabel={t('journal.viewCalendar')}
+              accessibilityState={{ selected: view === 'calendar' }}
+              hitSlop={6}
+              style={({ pressed }) => [styles.viewBtn, view === 'calendar' && styles.viewBtnActive, pressed && styles.pressed]}
+            >
+              <Ionicons name="calendar-outline" size={17} color={view === 'calendar' ? colors.primaryDeep : colors.textMuted} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.chips}>
@@ -156,6 +266,39 @@ export default function JournalScreen() {
           <EmptyState icon="book-outline" text={t('home.petsEmpty')} />
         ) : events === null ? (
           <ActivityIndicator color={colors.primary} style={styles.loading} />
+        ) : view === 'calendar' ? (
+          <>
+            <CalendarView
+              position={calPos}
+              label={formatMonth(calPos.year, calPos.month, locale)}
+              marked={markedDays}
+              selected={selDay}
+              onSelect={(key) => setSelDay(selDay === key ? null : key)}
+              onPrev={() => setCalPos(addMonths(calPos, -1))}
+              onNext={() => setCalPos(addMonths(calPos, 1))}
+            />
+            {selDay ? (
+              dayEntries.length > 0 ? (
+                <View>
+                  <Text style={styles.dayHeader}>{formatDate(`${selDay}T00:00:00.000Z`, locale)}</Text>
+                  {dayEntries.map((e) => (
+                    <EntryRow
+                      key={e.id}
+                      e={e}
+                      photo={photoByEvent.get(e.id)}
+                      showPetName={query.trim().length > 0 && 'pet_name' in e}
+                    />
+                  ))}
+                </View>
+              ) : (
+                <View style={styles.emptyWrap}>
+                  <EmptyState icon="book-outline" text={t('journal.dayEmpty')} />
+                </View>
+              )
+            ) : (
+              <Text style={styles.calHint}>{t('journal.pickDay')}</Text>
+            )}
+          </>
         ) : filtered.length === 0 ? (
           <View style={styles.emptyWrap}>
             <EmptyState icon="book-outline" text={query ? t('journal.noResults') : t('journal.empty')} />
@@ -164,57 +307,14 @@ export default function JournalScreen() {
           sections.map(([day, items]) => (
             <View key={day}>
               <Text style={styles.dayHeader}>{relativeDayLabel(items[0].occurred_at, locale)}</Text>
-              {items.map((e) => {
-                const meta = kindMeta(e.kind);
-                const photo = photoByEvent.get(e.id);
-                return (
-                  // The heart is a sibling of the row button — a <button>
-                  // nested inside another <button> is invalid HTML on web.
-                  <View key={e.id} style={styles.row}>
-                    <Pressable
-                      onPress={() => router.push(`/entry-form?id=${e.id}`)}
-                      accessibilityRole="button"
-                      accessibilityLabel={eventTitle(t, e)}
-                      style={({ pressed }) => [styles.rowMain, pressed && styles.pressed]}
-                    >
-                      <View style={[styles.icon, { backgroundColor: meta.color + '22' }]}>
-                        <Ionicons name={meta.icon as never} size={20} color={meta.color} />
-                      </View>
-                      <View style={styles.info}>
-                        <Text style={styles.title} numberOfLines={1}>
-                          {eventTitle(t, e)}
-                        </Text>
-                        {eventSummary(e) ? (
-                          <Text style={styles.summary} numberOfLines={1}>
-                            {eventSummary(e)}
-                          </Text>
-                        ) : null}
-                        <Text style={styles.meta}>
-                          {query.trim() && 'pet_name' in e && e.pet_name
-                            ? `${e.pet_name} · ${formatTime(e.occurred_at)}`
-                            : formatTime(e.occurred_at)}
-                        </Text>
-                      </View>
-                      {photo?.local_uri ? (
-                        <Image source={{ uri: photo.local_uri }} style={styles.thumb} accessibilityIgnoresInvertColors />
-                      ) : null}
-                    </Pressable>
-                    <Pressable
-                      onPress={() => toggleFavorite(e)}
-                      accessibilityRole="button"
-                      accessibilityLabel={e.favorite === 1 ? t('journal.unfavorite') : t('journal.favorite')}
-                      hitSlop={10}
-                      style={styles.heart}
-                    >
-                      <Ionicons
-                        name={e.favorite === 1 ? 'heart' : 'heart-outline'}
-                        size={20}
-                        color={e.favorite === 1 ? colors.error : colors.textMuted}
-                      />
-                    </Pressable>
-                  </View>
-                );
-              })}
+              {items.map((e) => (
+                <EntryRow
+                  key={e.id}
+                  e={e}
+                  photo={photoByEvent.get(e.id)}
+                  showPetName={query.trim().length > 0 && 'pet_name' in e}
+                />
+              ))}
             </View>
           ))
         )}
@@ -279,6 +379,22 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   thumb: { width: 44, height: 44, borderRadius: radius.sm + 2 },
   heart: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   emptyWrap: { marginTop: spacing.lg },
+  viewToggle: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingRight: spacing.xs },
+  viewBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewBtnActive: { backgroundColor: colors.primarySoft },
+  calHint: {
+    fontFamily: 'Roboto_400Regular',
+    fontSize: 13,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginVertical: spacing.lg,
+  },
   error: { color: colors.errorDeep, marginVertical: spacing.sm },
   pressed: { opacity: 0.7 },
 });

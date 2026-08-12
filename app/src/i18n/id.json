@@ -53,7 +53,11 @@
     "noResults": "Tidak ada catatan yang cocok",
     "favorite": "Favorit",
     "unfavorite": "Hapus favorit",
-    "clearSearch": "Hapus pencarian"
+    "clearSearch": "Hapus pencarian",
+    "viewList": "Tampilan daftar",
+    "viewCalendar": "Tampilan kalender",
+    "pickDay": "Pilih tanggal untuk melihat catatannya",
+    "dayEmpty": "Tidak ada catatan di tanggal ini"
   },
   "health": {
     "title": "Kesehatan",

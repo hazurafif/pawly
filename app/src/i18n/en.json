@@ -53,7 +53,11 @@
     "noResults": "No entries match your search",
     "favorite": "Favorite",
     "unfavorite": "Remove favorite",
-    "clearSearch": "Clear search"
+    "clearSearch": "Clear search",
+    "viewList": "List view",
+    "viewCalendar": "Calendar view",
+    "pickDay": "Pick a day to see its entries",
+    "dayEmpty": "Nothing logged on this day"
   },
   "health": {
     "title": "Health",

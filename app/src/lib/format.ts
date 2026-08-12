@@ -30,6 +30,12 @@ export function formatDate(isoMs: string, locale: 'id' | 'en'): string {
   return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+// "August 2026"-style label for the calendar header.
+export function formatMonth(year: number, month: number, locale: 'id' | 'en'): string {
+  const months = locale === 'id' ? MONTHS_ID : MONTHS_EN;
+  return `${months[month]} ${year}`;
+}
+
 // --- v2 helpers ---
 
 // A day is a YYYY-MM-DD in the USER's timezone: grouping and "today"
