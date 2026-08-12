@@ -180,6 +180,24 @@ describe('events (journal stream)', () => {
     expect(limited).toHaveLength(2);
   });
 
+  it('searchEvents matches titles and text across every pet, with pet names', async () => {
+    const { repo } = await newRepo();
+    await repo.applyChanges({
+      pets: rows(pet('p-1', 'Miko'), pet('p-2', 'Boba')),
+      events: rows(
+        event('e-1', 'p-1', 'feed', '2026-08-01T07:00:00.000Z', { title: 'Breakfast', text: 'wet food' }),
+        event('e-2', 'p-2', 'symptom', '2026-08-01T08:00:00.000Z', { title: 'Itchy skin', text: 'breakfast allergy?' }),
+        event('e-3', 'p-2', 'feed', '2026-08-01T18:00:00.000Z', { title: 'Dinner' })
+      ),
+    });
+
+    const hits = await repo.searchEvents('breakfast');
+    expect(hits.map((e) => `${e.pet_name}:${e.id}`)).toEqual(['Boba:e-2', 'Miko:e-1']);
+
+    expect(await repo.searchEvents('   ')).toEqual([]);
+    expect(await repo.searchEvents('nomatch')).toEqual([]);
+  });
+
   it('eventsSince returns only events at or after the instant', async () => {
     const { repo } = await newRepo();
     await repo.applyChanges({

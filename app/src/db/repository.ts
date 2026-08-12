@@ -267,6 +267,19 @@ export class Repository {
     );
   }
 
+  // Text search across EVERY pet's journal (title + text), for the global
+  // search mode of the Journal tab.
+  async searchEvents(q: string): Promise<EventWithPet[]> {
+    const like = `%${q.trim()}%`;
+    return this.db.all(
+      `SELECT e.${COLUMNS.events.join(', e.')}, p.name AS pet_name
+       FROM events e LEFT JOIN pets p ON p.id = e.pet_id AND p.deleted_at IS NULL
+       WHERE e.deleted_at IS NULL AND (e.title LIKE ? OR e.text LIKE ?)
+       ORDER BY e.occurred_at DESC, e.created_at DESC`,
+      [like, like]
+    );
+  }
+
   async eventsSince(petId: string, isoMs: string): Promise<Event[]> {
     return this.db.all(
       `SELECT ${COLUMNS.events.join(', ')} FROM events

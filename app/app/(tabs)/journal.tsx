@@ -10,7 +10,7 @@ import { Chip, EmptyState } from '../../src/components/ui';
 import { Fab } from '../../src/components/ui';
 import { kindMeta } from '../../src/lib/catalog';
 import { dayKeyOfIso, formatTime, relativeDayLabel, weightKg } from '../../src/lib/format';
-import type { Event, PhotoWithUri } from '../../src/db/types';
+import type { Event, EventWithPet, PhotoWithUri } from '../../src/db/types';
 import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
 import { useAppColors } from '../../src/hooks/useTheme';
 
@@ -56,6 +56,10 @@ export default function JournalScreen() {
   const { data: events, error } = useRepoData((r) =>
     petId ? r.eventsForPet(petId, { q: query.trim() || undefined }) : Promise.resolve([] as Event[])
   );
+  // Search mode: query text matches entries of EVERY pet (global search).
+  const { data: globalResults } = useRepoData((r) =>
+    query.trim() ? r.searchEvents(query) : Promise.resolve([] as EventWithPet[])
+  );
   const { data: photos } = useRepoData((r) =>
     petId ? r.photosForPet(petId) : Promise.resolve([] as PhotoWithUri[])
   );
@@ -71,7 +75,9 @@ export default function JournalScreen() {
   }, [photos]);
 
   const filtered = useMemo(() => {
-    const list = events ?? [];
+    // With a query, results come from the global cross-pet search;
+    // otherwise the active pet's journal. Chips still narrow both.
+    const list = (query.trim() ? globalResults : events) ?? [];
     if (chip === 'care') {
       return list.filter((e) => CARE_KINDS.includes(e.kind));
     }
@@ -79,7 +85,7 @@ export default function JournalScreen() {
       return list.filter((e) => HEALTH_KINDS.includes(e.kind));
     }
     return list;
-  }, [events, chip]);
+  }, [events, globalResults, chip, query]);
 
   // Group by local day, preserving newest-first order.
   const sections = useMemo(() => {
@@ -183,7 +189,11 @@ export default function JournalScreen() {
                             {eventSummary(e)}
                           </Text>
                         ) : null}
-                        <Text style={styles.meta}>{formatTime(e.occurred_at)}</Text>
+                        <Text style={styles.meta}>
+                          {query.trim() && 'pet_name' in e && e.pet_name
+                            ? `${e.pet_name} · ${formatTime(e.occurred_at)}`
+                            : formatTime(e.occurred_at)}
+                        </Text>
                       </View>
                       {photo?.local_uri ? (
                         <Image source={{ uri: photo.local_uri }} style={styles.thumb} accessibilityIgnoresInvertColors />
