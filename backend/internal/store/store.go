@@ -33,7 +33,7 @@ var TableNames = []string{"pets", "events", "photos", "reminder_rules"}
 // columnsByTable is the allow-list of columns per table. Unknown columns are
 // rejected during upsert. Order matters: it defines insert/select column order.
 var columnsByTable = map[string][]string{
-	"pets":          {"id", "name", "species", "sex", "birth_date", "birth_date_is_estimated", "rescue_date", "rescue_date_is_estimated", "is_neutered", "story", "status", "passed_away_date", "vet_clinic", "created_at", "updated_at", "deleted_at"},
+	"pets":          {"id", "name", "species", "sex", "birth_date", "birth_date_is_estimated", "rescue_date", "rescue_date_is_estimated", "is_neutered", "story", "status", "passed_away_date", "vet_clinic", "breed", "microchip", "allergies", "created_at", "updated_at", "deleted_at"},
 	"events":        {"id", "pet_id", "kind", "title", "text", "occurred_at", "next_due_at", "data", "favorite", "created_at", "updated_at", "deleted_at"},
 	"photos":        {"id", "event_id", "taken_at", "content_type", "created_at", "updated_at", "deleted_at"},
 	"reminder_rules": {"id", "pet_id", "title", "kind", "due", "repeat", "dose", "note", "created_at", "updated_at", "deleted_at"},
@@ -105,6 +105,12 @@ CREATE INDEX idx_pets_updated ON pets(updated_at);
 CREATE INDEX idx_events_updated ON events(updated_at);
 CREATE INDEX idx_photos_updated ON photos(updated_at);
 CREATE INDEX idx_rules_updated ON reminder_rules(updated_at);
+`,
+	// 1: pet profile fields (breed, microchip, allergies)
+	`
+ALTER TABLE pets ADD COLUMN breed TEXT;
+ALTER TABLE pets ADD COLUMN microchip TEXT;
+ALTER TABLE pets ADD COLUMN allergies TEXT;
 `,
 }
 
