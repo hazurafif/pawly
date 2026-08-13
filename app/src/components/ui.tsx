@@ -1,13 +1,18 @@
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { radius, shadow, spacing, type Palette } from '../lib/theme';
-import { useAppColors, useStyles } from '../hooks/useTheme';
+import { radius, shadow, spacing, typeScale, withAlpha, type M3Roles, type Palette } from '../lib/theme';
+import { useM3Roles, useStyles } from '../hooks/useTheme';
 
-const createStyles = (colors: Palette) =>
+// Shared primitives, styled with Material 3 semantic roles: filled/outlined
+// buttons, filter chips, elevated cards, a primary-container FAB, and the
+// M3 type scale. Legacy screens that style themselves from `colors.*`
+// still work — the back-compat palette tokens are unchanged.
+
+const createStyles = (colors: Palette, roles: M3Roles) =>
   StyleSheet.create({
     card: {
-      backgroundColor: colors.surface,
+      backgroundColor: roles.surfaceContainerLow, // M3 elevated card, level 1
       borderRadius: radius.md,
       padding: spacing.md,
       marginBottom: spacing.md,
@@ -20,30 +25,52 @@ const createStyles = (colors: Palette) =>
       marginTop: spacing.md,
     },
     sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-    sectionTitle: { fontSize: 16, fontFamily: 'Roboto_700Bold', color: colors.text },
+    sectionTitle: {
+      fontSize: typeScale.titleMedium.fontSize,
+      lineHeight: typeScale.titleMedium.lineHeight,
+      fontFamily: typeScale.titleMedium.fontFamily,
+      color: roles.onSurface,
+    },
     sectionAction: { paddingVertical: 4, paddingHorizontal: 8 },
-    sectionActionText: { color: colors.primaryDeep, fontSize: 14, fontFamily: 'Roboto_500Medium' },
+    sectionActionText: {
+      color: roles.primary,
+      fontSize: typeScale.labelLarge.fontSize,
+      fontFamily: typeScale.labelLarge.fontFamily,
+    },
     empty: { alignItems: 'center', paddingVertical: spacing.lg, gap: spacing.sm },
     emptyIcon: {
       width: 48,
       height: 48,
       borderRadius: radius.pill,
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: roles.surfaceContainerHigh,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    emptyText: { color: colors.textMuted, fontFamily: 'Roboto_400Regular', fontSize: 14, textAlign: 'center' },
+    emptyText: {
+      color: roles.onSurfaceVariant,
+      fontFamily: typeScale.bodyMedium.fontFamily,
+      fontSize: typeScale.bodyMedium.fontSize,
+      lineHeight: typeScale.bodyMedium.lineHeight,
+      textAlign: 'center',
+    },
     chip: {
       paddingVertical: 8,
       paddingHorizontal: 14,
       borderRadius: radius.pill,
-      backgroundColor: colors.surface,
+      backgroundColor: roles.surfaceContainerLow,
       borderWidth: 1,
-      borderColor: colors.border,
+      borderColor: roles.outline,
     },
-    chipActive: { backgroundColor: colors.primaryDeep, borderColor: colors.primaryDeep },
-    chipText: { fontSize: 13, fontFamily: 'Roboto_500Medium', color: colors.textMuted },
-    chipTextActive: { color: colors.white },
+    chipActive: {
+      backgroundColor: roles.secondaryContainer,
+      borderColor: roles.secondaryContainer,
+    },
+    chipText: {
+      fontSize: typeScale.labelLarge.fontSize,
+      fontFamily: typeScale.labelLarge.fontFamily,
+      color: roles.onSurfaceVariant,
+    },
+    chipTextActive: { color: roles.onSecondaryContainer },
     chipGroupRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
     formChip: {
       flexDirection: 'row',
@@ -52,19 +79,25 @@ const createStyles = (colors: Palette) =>
       paddingVertical: 10,
       paddingHorizontal: 14,
       borderRadius: radius.pill,
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: roles.surfaceContainerLow,
       minHeight: 40,
       justifyContent: 'center',
+      borderWidth: 1,
+      borderColor: roles.outline,
     },
-    formChipActive: { backgroundColor: colors.primaryDeep },
-    formChipText: { fontSize: 13, fontFamily: 'Roboto_500Medium', color: colors.textMuted },
-    formChipTextActive: { color: colors.white },
+    formChipActive: { backgroundColor: roles.secondaryContainer, borderColor: roles.secondaryContainer },
+    formChipText: {
+      fontSize: typeScale.labelLarge.fontSize,
+      fontFamily: typeScale.labelLarge.fontFamily,
+      color: roles.onSurfaceVariant,
+    },
+    formChipTextActive: { color: roles.onSecondaryContainer },
     badge: {
       paddingVertical: 3,
       paddingHorizontal: 8,
       borderRadius: radius.pill,
     },
-    badgeText: { fontSize: 11, fontFamily: 'Roboto_700Bold' },
+    badgeText: { fontSize: typeScale.labelSmall.fontSize, fontFamily: typeScale.labelSmall.fontFamily },
     button: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -75,10 +108,15 @@ const createStyles = (colors: Palette) =>
       paddingHorizontal: 16,
       minHeight: 48,
     },
-    buttonSecondaryBorder: { borderWidth: 1, borderColor: colors.border },
-    buttonDangerGhostBorder: { borderWidth: 1, borderColor: colors.error },
+    buttonSecondaryBorder: { borderWidth: 1, borderColor: 'transparent' },
+    buttonDangerGhostBorder: { borderWidth: 1, borderColor: 'transparent' },
     buttonDisabled: { opacity: 0.5 },
-    buttonText: { fontSize: 15, fontFamily: 'Roboto_700Bold' },
+    buttonText: {
+      fontSize: typeScale.labelLarge.fontSize,
+      lineHeight: typeScale.labelLarge.lineHeight,
+      fontFamily: typeScale.labelLarge.fontFamily,
+      letterSpacing: typeScale.labelLarge.letterSpacing,
+    },
     fab: {
       position: 'absolute',
       right: spacing.lg,
@@ -86,7 +124,7 @@ const createStyles = (colors: Palette) =>
       width: 56,
       height: 56,
       borderRadius: radius.pill,
-      backgroundColor: colors.primaryDark,
+      backgroundColor: roles.primaryContainer,
       alignItems: 'center',
       justifyContent: 'center',
       shadowColor: colors.primaryDark,
@@ -114,11 +152,11 @@ export function SectionHeader({
   action?: { label: string; onPress: () => void };
 }) {
   const styles = useStyles(createStyles);
-  const colors = useAppColors();
+  const roles = useM3Roles();
   return (
     <View style={styles.sectionHeader}>
       <View style={styles.sectionTitleRow}>
-        <Ionicons name={icon as never} size={18} color={colors.primary} />
+        <Ionicons name={icon as never} size={18} color={roles.primary} />
         <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       {action ? (
@@ -138,11 +176,11 @@ export function SectionHeader({
 
 export function EmptyState({ icon, text }: { icon: string; text: string }) {
   const styles = useStyles(createStyles);
-  const colors = useAppColors();
+  const roles = useM3Roles();
   return (
     <View style={styles.empty}>
       <View style={styles.emptyIcon}>
-        <Ionicons name={icon as never} size={24} color={colors.textMuted} />
+        <Ionicons name={icon as never} size={24} color={roles.onSurfaceVariant} />
       </View>
       <Text style={styles.emptyText}>{text}</Text>
     </View>
@@ -192,7 +230,7 @@ export function ChipGroup<T extends string>({
   value: T;
   onSelect: (v: T) => void;
 }) {
-  const colors = useAppColors();
+  const roles = useM3Roles();
   const styles = useStyles(createStyles);
   return (
     <View style={styles.chipGroupRow}>
@@ -214,7 +252,7 @@ export function ChipGroup<T extends string>({
               <Ionicons
                 name={o.icon as never}
                 size={16}
-                color={active ? colors.white : colors.primary}
+                color={active ? roles.onSecondaryContainer : roles.primary}
               />
             ) : null}
             <Text style={[styles.formChipText, active && styles.formChipTextActive]}>
@@ -228,12 +266,12 @@ export function ChipGroup<T extends string>({
 }
 
 export function Badge({ text, tone = 'soft' }: { text: string; tone?: 'soft' | 'danger' | 'success' }) {
-  const colors = useAppColors();
+  const colors = useM3Roles();
   const styles = useStyles(createStyles);
   const bg =
-    tone === 'danger' ? colors.errorSoft : tone === 'success' ? colors.successSoft : colors.primarySoft;
+    tone === 'danger' ? colors.errorContainer : tone === 'success' ? colors.tertiaryContainer : colors.primaryContainer;
   const fg =
-    tone === 'danger' ? colors.errorDeep : tone === 'success' ? colors.successDeep : colors.primaryDeep;
+    tone === 'danger' ? colors.onErrorContainer : tone === 'success' ? colors.onTertiaryContainer : colors.onPrimaryContainer;
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
       <Text style={[styles.badgeText, { color: fg }]}>{text}</Text>
@@ -254,18 +292,29 @@ export function Button({
   disabled?: boolean;
   icon?: string;
 }) {
-  const colors = useAppColors();
+  const roles = useM3Roles();
   const styles = useStyles(createStyles);
+  // M3 button variants: filled (primary), outlined (secondary), text
+  // (ghost), filled-error (danger), text-error (dangerGhost). Disabled
+  // uses onSurface at 12% background / 38% foreground.
   const bg =
     variant === 'primary'
-      ? colors.primaryDark
+      ? roles.primary
       : variant === 'danger'
-        ? colors.error
+        ? roles.error
         : variant === 'ghost' || variant === 'dangerGhost'
           ? 'transparent'
-          : colors.surfaceMuted;
+          : 'transparent';
   const fg =
-    variant === 'ghost' ? colors.textMuted : variant === 'dangerGhost' ? colors.error : colors.white;
+    variant === 'primary'
+      ? roles.onPrimary
+      : variant === 'danger'
+        ? roles.onError
+        : variant === 'dangerGhost'
+          ? roles.error
+          : variant === 'ghost'
+            ? roles.primary
+            : roles.primary;
   return (
     <Pressable
       onPress={onPress}
@@ -274,22 +323,32 @@ export function Button({
       accessibilityLabel={label}
       style={({ pressed }) => [
         styles.button,
-        { backgroundColor: bg },
+        { backgroundColor: disabled ? withAlpha(roles.onSurface, 0.12) : bg },
         variant === 'secondary' && styles.buttonSecondaryBorder,
+        variant === 'secondary' && { borderColor: roles.outline },
         variant === 'dangerGhost' && styles.buttonDangerGhostBorder,
+        variant === 'dangerGhost' && { borderColor: roles.error },
         disabled && styles.buttonDisabled,
         pressed && !disabled && styles.pressed,
       ]}
     >
-      {icon ? <Ionicons name={icon as never} size={18} color={fg} /> : null}
-      <Text style={[styles.buttonText, { color: fg }]}>{label}</Text>
+      {icon ? (
+        <Ionicons
+          name={icon as never}
+          size={18}
+          color={disabled ? withAlpha(roles.onSurface, 0.38) : fg}
+        />
+      ) : null}
+      <Text style={[styles.buttonText, { color: disabled ? withAlpha(roles.onSurface, 0.38) : fg }]}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 export function Fab({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
   const styles = useStyles(createStyles);
-  const colors = useAppColors();
+  const roles = useM3Roles();
   return (
     <Pressable
       onPress={onPress}
@@ -297,7 +356,7 @@ export function Fab({ icon, label, onPress }: { icon: string; label: string; onP
       accessibilityLabel={label}
       style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
     >
-      <Ionicons name={icon as never} size={26} color={colors.white} />
+      <Ionicons name={icon as never} size={26} color={roles.onPrimaryContainer} />
     </Pressable>
   );
 }
