@@ -22,9 +22,9 @@ import {
   SeverityPicker,
   WeightField,
 } from '../src/components/entry-fields';
-import { dayKeyOfIso, parseLocalDateInput, weightKg } from '../src/lib/format';
-import { radius, spacing, type Palette } from '../src/lib/theme';
-import { useAppColors } from '../src/hooks/useTheme';
+import { dayKeyOfIso, parseDecimal, parseLocalDateInput, weightKg } from '../src/lib/format';
+import { radius, spacing, typeScale, type M3Roles, type Palette } from '../src/lib/theme';
+import { useAppColors, useStyles } from '../src/hooks/useTheme';
 import type { Event } from '../src/db/types';
 
 const CARE_KINDS = ['feed', 'water', 'walk', 'potty'];
@@ -36,7 +36,7 @@ const ATTACH_KINDS = ['visit', 'vaccine', 'med_given', 'symptom'];
 export default function EntryFormScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useStyles(createStyles);
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string; kind?: string; title?: string }>();
   const editingId = params.id ?? null;
@@ -149,8 +149,8 @@ export default function EntryFormScreen() {
 
       let data: Record<string, unknown> | null = null;
       if (kind === 'weight') {
-        const kg = Number(weight);
-        if (!weight.trim() || !Number.isFinite(kg) || kg <= 0) {
+        const kg = parseDecimal(weight);
+        if (kg == null || kg <= 0) {
           setError(t('entry.weightKg'));
           return;
         }
@@ -161,8 +161,8 @@ export default function EntryFormScreen() {
         data = { severity };
       } else if (kind === 'vet_bill') {
         if (price.trim()) {
-          const amount = Number(price.replace(',', '.'));
-          if (!Number.isFinite(amount) || amount < 0) {
+          const amount = parseDecimal(price);
+          if (amount == null || amount < 0) {
             setError(t('entry.priceInvalid'));
             return;
           }
@@ -512,10 +512,10 @@ export default function EntryFormScreen() {
   );
 }
 
-const createStyles = (colors: Palette) => StyleSheet.create({
+const createStyles = (colors: Palette, roles: M3Roles) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
-  label: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, marginBottom: spacing.xs },
+  label: { fontSize: typeScale.labelLarge.fontSize, lineHeight: typeScale.labelLarge.lineHeight, fontFamily: typeScale.labelLarge.fontFamily, color: roles.onSurface, marginBottom: spacing.xs },
   pickTitle: {
     fontSize: 17,
     fontFamily: 'Roboto_700Bold',
@@ -533,7 +533,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xs,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: roles.surfaceContainerHigh,
   },
   kindIcon: {
     width: 44,
@@ -544,8 +544,10 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   },
   kindLabel: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, textAlign: 'center' },
   input: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: roles.surfaceContainerHigh,
     borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: roles.outlineVariant,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
     fontFamily: 'Roboto_400Regular', fontSize: 15,

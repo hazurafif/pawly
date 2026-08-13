@@ -8,7 +8,7 @@ import { useRepoData } from '../../src/hooks/useRepoData';
 import { Badge, Card, EmptyState, SectionHeader } from '../../src/components/ui';
 import { WeightChart } from '../../src/components/WeightChart';
 import { lastCompletionForRule, nextDueIso, ruleStatus } from '../../src/lib/rules';
-import { formatDate, weightKg, billPrice, formatPrice } from '../../src/lib/format';
+import { formatDate, weightKg, billPrice, formatKg, formatPrice } from '../../src/lib/format';
 import { MOOD_VALUES, kindMeta } from '../../src/lib/catalog';
 import type { Event, ReminderRule } from '../../src/db/types';
 import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
@@ -148,7 +148,7 @@ export default function HealthScreen() {
           <Card>
             {latest != null ? (
               <View style={styles.weightRow}>
-                <Text style={styles.weightValue}>{latest} kg</Text>
+                <Text style={styles.weightValue}>{formatKg(latest)} kg</Text>
                 <Badge text={t('health.latest')} />
               </View>
             ) : (

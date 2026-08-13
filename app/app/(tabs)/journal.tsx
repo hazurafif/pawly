@@ -11,7 +11,7 @@ import { Fab } from '../../src/components/ui';
 import { CalendarView } from '../../src/components/CalendarView';
 import { kindMeta } from '../../src/lib/catalog';
 import { addMonths, todayPosition } from '../../src/lib/calendar';
-import { dayKeyOfIso, formatDate, formatMonth, formatTime, relativeDayLabel, weightKg } from '../../src/lib/format';
+import { dayKeyOfIso, formatDate, formatKg, formatMonth, formatTime, relativeDayLabel, weightKg } from '../../src/lib/format';
 import type { Event, EventWithPet, PhotoWithUri } from '../../src/db/types';
 import { radius, spacing, tabBarClearance, type Palette } from '../../src/lib/theme';
 import { useAppColors, useStyles } from '../../src/hooks/useTheme';
@@ -27,7 +27,7 @@ function eventTitle(t: (k: string) => string, e: Event): string {
   }
   if (e.kind === 'weight') {
     const kg = weightKg(e.data);
-    return kg != null ? `${kg} kg` : t('event.kinds.weight');
+    return kg != null ? `${formatKg(kg)} kg` : t('event.kinds.weight');
   }
   return t(`event.kinds.${e.kind}` as never);
 }

@@ -14,7 +14,9 @@ import {
   toIsoMs,
   weightKg,
   billPrice,
+  formatKg,
   formatPrice,
+  parseDecimal,
 } from '../format';
 
 afterEach(() => {
@@ -203,5 +205,40 @@ describe('formatPrice', () => {
     expect(formatPrice(250000, 'en')).toBe('250,000');
     expect(formatPrice(250000, 'id')).toBe('250.000');
     expect(formatPrice(1234, 'en')).toBe('1,234');
+  });
+
+  it('keeps up to two decimals instead of rounding them away', () => {
+    expect(formatPrice(250.5, 'en')).toBe('250.5');
+    expect(formatPrice(250.25, 'en')).toBe('250.25');
+    expect(formatPrice(250.256, 'en')).toBe('250.26');
+    expect(formatPrice(250.5, 'id')).toBe('250,5');
+  });
+});
+
+describe('formatKg', () => {
+  it('rounds to one decimal and trims trailing zeros', () => {
+    expect(formatKg(4)).toBe('4');
+    expect(formatKg(4.2)).toBe('4.2');
+    expect(formatKg(4.25)).toBe('4.3');
+    expect(formatKg(4.251)).toBe('4.3');
+    expect(formatKg(10)).toBe('10');
+  });
+});
+
+describe('parseDecimal', () => {
+  it('accepts dot and comma decimals with surrounding space', () => {
+    expect(parseDecimal('4.2')).toBe(4.2);
+    expect(parseDecimal('4,2')).toBe(4.2);
+    expect(parseDecimal(' 4 ')).toBe(4);
+    expect(parseDecimal('250')).toBe(250);
+  });
+
+  it('rejects garbage, exponents, hex, and empty input', () => {
+    expect(parseDecimal('')).toBeNull();
+    expect(parseDecimal('abc')).toBeNull();
+    expect(parseDecimal('4.2.3')).toBeNull();
+    expect(parseDecimal('1e3')).toBeNull();
+    expect(parseDecimal('0x10')).toBeNull();
+    expect(parseDecimal('-4')).toBeNull();
   });
 });

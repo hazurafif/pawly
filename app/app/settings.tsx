@@ -21,13 +21,13 @@ import { discoverServerUrl } from '../src/lib/server';
 import { confirmAction } from '../src/lib/confirm';
 import { setAppLanguage } from '../src/i18n';
 import { Button, Card, EmptyState, SectionHeader } from '../src/components/ui';
-import { radius, spacing, type Palette } from '../src/lib/theme';
-import { useAppColors } from '../src/hooks/useTheme';
+import { radius, spacing, typeScale, type M3Roles, type Palette } from '../src/lib/theme';
+import { useAppColors, useStyles } from '../src/hooks/useTheme';
 
 export default function SettingsScreen() {
   const { t, i18n } = useTranslation();
   const colors = useAppColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useStyles(createStyles);
   const router = useRouter();
   const { status, syncNow } = useSync();
   const { pets, activePet } = useActivePet();
@@ -222,7 +222,7 @@ export default function SettingsScreen() {
   );
 }
 
-const createStyles = (colors: Palette) => StyleSheet.create({
+const createStyles = (colors: Palette, roles: M3Roles) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
   petRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -242,11 +242,13 @@ const createStyles = (colors: Palette) => StyleSheet.create({
   syncRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm },
   dot: { width: 10, height: 10, borderRadius: radius.pill },
   syncText: { fontSize: 14, color: colors.textMuted, fontFamily: 'Roboto_500Medium' },
-  label: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, marginTop: spacing.md, marginBottom: spacing.xs },
+  label: { fontSize: typeScale.labelLarge.fontSize, lineHeight: typeScale.labelLarge.lineHeight, fontFamily: typeScale.labelLarge.fontFamily, color: roles.onSurface, marginTop: spacing.md, marginBottom: spacing.xs },
   hint: { fontFamily: 'Roboto_400Regular', fontSize: 13, color: colors.textMuted, marginBottom: spacing.md },
   input: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: roles.surfaceContainerHigh,
     borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: roles.outlineVariant,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
     fontFamily: 'Roboto_400Regular', fontSize: 15,
@@ -260,7 +262,7 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: roles.surfaceContainerHigh,
     borderWidth: 1,
     borderColor: 'transparent',
   },

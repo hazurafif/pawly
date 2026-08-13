@@ -23,8 +23,8 @@ import { parseLocalDateInput } from '../src/lib/format';
 import { Button, Card, ChipGroup } from '../src/components/ui';
 import { DateField } from '../src/components/DateField';
 import type { Pet } from '../src/db/types';
-import { radius, spacing, type Palette } from '../src/lib/theme';
-import { useAppColors } from '../src/hooks/useTheme';
+import { radius, spacing, typeScale, type M3Roles, type Palette } from '../src/lib/theme';
+import { useAppColors, useStyles } from '../src/hooks/useTheme';
 
 const SEXES = ['male', 'female', 'unknown'] as const;
 const NEUTERED = ['yes', 'no', 'unknown'] as const;
@@ -35,7 +35,7 @@ function labelsFor<T extends string>(t: (k: string) => string, prefix: string, v
 
 export default function PetFormScreen() {
   const colors = useAppColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useStyles(createStyles);
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
@@ -284,7 +284,7 @@ export default function PetFormScreen() {
   );
 }
 
-const createStyles = (colors: Palette) => StyleSheet.create({
+const createStyles = (colors: Palette, roles: M3Roles) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
   photoButton: { alignItems: 'center', marginBottom: spacing.md },
@@ -292,18 +292,20 @@ const createStyles = (colors: Palette) => StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: radius.lg,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: roles.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
   },
   photoHint: { fontSize: 12, color: colors.textMuted, fontFamily: 'Roboto_500Medium' },
   photoPreview: { width: 96, height: 96, borderRadius: radius.lg },
-  label: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, marginTop: spacing.md, marginBottom: spacing.xs },
+  label: { fontSize: typeScale.labelLarge.fontSize, lineHeight: typeScale.labelLarge.lineHeight, fontFamily: typeScale.labelLarge.fontFamily, color: roles.onSurface, marginTop: spacing.md, marginBottom: spacing.xs },
   hint: { fontFamily: 'Roboto_400Regular', fontSize: 12, color: colors.textMuted, marginTop: 2 },
   input: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: roles.surfaceContainerHigh,
     borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: roles.outlineVariant,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
     fontFamily: 'Roboto_400Regular', fontSize: 15,

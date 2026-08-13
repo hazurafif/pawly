@@ -8,7 +8,7 @@ import { useRepoData } from '../src/hooks/useRepoData';
 import { useToast } from '../src/components/Toast';
 import { Button, Card, EmptyState, SectionHeader } from '../src/components/ui';
 import { MOOD_VALUES } from '../src/lib/catalog';
-import { formatDate, formatTime, weightKg } from '../src/lib/format';
+import { formatDate, formatKg, formatTime, weightKg } from '../src/lib/format';
 import { lastCompletionForRule, nextDueIso, ruleStatus } from '../src/lib/rules';
 import { reportMarkdown, type ReportData } from '../src/lib/report';
 import { shareText } from '../src/lib/share';
@@ -86,7 +86,7 @@ export default function VetReportScreen() {
     const data: ReportData = {
       petName: activePet.name,
       periodLabel: `${t('health.reportPeriod')} · ${formatDate(sinceIso(30), locale)} → ${formatDate(new Date().toISOString(), locale)}`,
-      weights: report.weights.map((w) => ({ at: formatDate(w.at, locale), text: `${w.kg} kg` })),
+      weights: report.weights.map((w) => ({ at: formatDate(w.at, locale), text: `${formatKg(w.kg)} kg` })),
       checkins: report.checkins.map((e) => ({ at: formatDate(e.occurred_at, locale), text: checkinSummary(e, t) })),
       symptoms: report.symptoms.map((e) => ({ at: formatDate(e.occurred_at, locale), text: e.title || t('event.kinds.symptom') })),
       meds: report.meds.map((e) => ({ at: formatDate(e.occurred_at, locale), text: e.title || t('event.kinds.med_given') })),
@@ -155,7 +155,7 @@ export default function VetReportScreen() {
                 {report.weights.map((w) => (
                   <View key={w.at} style={styles.line}>
                     <Text style={styles.lineText}>{formatDate(w.at, locale)}</Text>
-                    <Text style={styles.lineValue}>{w.kg} kg</Text>
+                    <Text style={styles.lineValue}>{formatKg(w.kg)} kg</Text>
                   </View>
                 ))}
                 {report.weights.length > 1 ? (

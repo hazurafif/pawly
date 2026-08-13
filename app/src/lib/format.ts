@@ -182,9 +182,27 @@ export function billPrice(data: string | null): number | null {
   return null;
 }
 
-// Groups a money amount with the locale's digit separators (no symbol).
+// Groups a money amount with the locale's digit separators. Keeps up to
+// two decimals so a 250.5 bill is never silently rounded to 250.
 export function formatPrice(amount: number, locale: string): string {
   return new Intl.NumberFormat(locale === 'id' ? 'id-ID' : 'en-US', {
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount);
+}
+
+// Rounds kg to one decimal and trims a trailing ".0" — "4.3", "4".
+export function formatKg(kg: number): string {
+  const rounded = Math.round(kg * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+// Parses a decimal input ("4.2", "4,2", " 4 ") into a number, or null
+// when it isn't a plain decimal. Rejects exponents and hex literals.
+export function parseDecimal(text: string): number | null {
+  const t = text.trim().replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(t)) {
+    return null;
+  }
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
 }

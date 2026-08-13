@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useAppColors, useStyles } from '../hooks/useTheme';
 import { MOOD_VALUES, kindMeta } from '../lib/catalog';
-import { radius, spacing, type Palette } from '../lib/theme';
+import { parseDecimal } from '../lib/format';
+import { radius, spacing, typeScale, type M3Roles, type Palette } from '../lib/theme';
 
 const MOOD_EMOJI: Record<string, string> = {
   great: '😄',
@@ -25,9 +26,15 @@ const SEVERITY_ORDER = [
   { value: 'severe', icon: 'alert-circle-outline' },
 ] as const;
 
-const createStyles = (colors: Palette) =>
+const createStyles = (colors: Palette, roles: M3Roles) =>
   StyleSheet.create({
-    label: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, marginBottom: spacing.xs },
+    label: {
+      fontSize: typeScale.labelLarge.fontSize,
+      lineHeight: typeScale.labelLarge.lineHeight,
+      fontFamily: typeScale.labelLarge.fontFamily,
+      color: roles.onSurface,
+      marginBottom: spacing.xs,
+    },
     hero: {
       alignItems: 'center',
       paddingVertical: spacing.lg,
@@ -51,7 +58,7 @@ const createStyles = (colors: Palette) =>
       paddingVertical: 8,
       paddingHorizontal: 14,
       borderRadius: radius.pill,
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: roles.surfaceContainerHigh,
       borderWidth: 1,
       borderColor: 'transparent',
     },
@@ -88,7 +95,7 @@ const createStyles = (colors: Palette) =>
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.sm,
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: roles.surfaceContainerHigh,
       borderRadius: radius.md,
       paddingVertical: spacing.sm,
     },
@@ -116,7 +123,7 @@ const createStyles = (colors: Palette) =>
       width: 120,
       height: 96,
       borderRadius: radius.md,
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: roles.surfaceContainerHigh,
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.xs,
@@ -287,7 +294,7 @@ export function WeightField({
   const colors = useAppColors();
   const styles = useStyles(createStyles);
   const trimmed = value.trim();
-  const parsed = trimmed === '' ? Number.NaN : Number(trimmed);
+  const parsed = trimmed === '' ? Number.NaN : (parseDecimal(trimmed) ?? Number.NaN);
   const delta = !Number.isNaN(parsed) && lastKg != null ? parsed - lastKg : null;
   const showDelta = delta != null && Math.abs(delta) >= 0.01;
   return (

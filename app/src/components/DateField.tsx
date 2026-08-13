@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { darkColors, radius, spacing, type Palette } from '../lib/theme';
+import { darkColors, radius, spacing, type M3Roles, type Palette } from '../lib/theme';
 import { useAppColors, useStyles } from '../hooks/useTheme';
 
 let dateStylesInjected = false;
@@ -27,11 +27,13 @@ function injectDateStyles(): void {
   document.head.appendChild(style);
 }
 
-const createStyles = (colors: Palette) =>
+const createStyles = (colors: Palette, roles: M3Roles) =>
   StyleSheet.create({
     wrap: {
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: roles.surfaceContainerHigh,
       borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: roles.outlineVariant,
       paddingHorizontal: spacing.md,
       marginBottom: spacing.sm,
       position: 'relative',
@@ -47,8 +49,10 @@ const createStyles = (colors: Palette) =>
     },
     placeholderText: { fontFamily: 'Roboto_400Regular', fontSize: 15, color: colors.textMuted },
     button: {
-      backgroundColor: colors.surfaceMuted,
+      backgroundColor: roles.surfaceContainerHigh,
       borderRadius: radius.sm,
+      borderWidth: 1,
+      borderColor: roles.outlineVariant,
       minHeight: 46,
       paddingHorizontal: spacing.md,
       flexDirection: 'row',
@@ -56,7 +60,7 @@ const createStyles = (colors: Palette) =>
       justifyContent: 'space-between',
       marginBottom: spacing.sm,
     },
-    text: { fontFamily: 'Roboto_400Regular', fontSize: 15, color: colors.text },
+    text: { fontFamily: 'Roboto_400Regular', fontSize: 15, color: roles.onSurface },
     placeholder: { color: colors.textMuted },
     pressed: { opacity: 0.7 },
   });

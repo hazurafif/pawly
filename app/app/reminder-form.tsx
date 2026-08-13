@@ -13,14 +13,14 @@ import { RULE_KINDS, ruleKindMeta } from '../src/lib/catalog';
 import { Button, Card, ChipGroup } from '../src/components/ui';
 import { DateField } from '../src/components/DateField';
 import type { ReminderRule } from '../src/db/types';
-import { radius, spacing, type Palette } from '../src/lib/theme';
-import { useAppColors } from '../src/hooks/useTheme';
+import { radius, spacing, typeScale, type M3Roles, type Palette } from '../src/lib/theme';
+import { useAppColors, useStyles } from '../src/hooks/useTheme';
 
 const REPEATS = ['once', 'daily', 'weekly', 'monthly'] as const;
 
 export default function ReminderFormScreen() {
   const colors = useAppColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useStyles(createStyles);
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string; kind?: string }>();
@@ -184,13 +184,15 @@ export default function ReminderFormScreen() {
   );
 }
 
-const createStyles = (colors: Palette) => StyleSheet.create({
+const createStyles = (colors: Palette, roles: M3Roles) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl * 2 },
-  label: { fontSize: 13, fontFamily: 'Roboto_700Bold', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.md },
+  label: { fontSize: typeScale.labelLarge.fontSize, lineHeight: typeScale.labelLarge.lineHeight, fontFamily: typeScale.labelLarge.fontFamily, color: roles.onSurface, marginBottom: spacing.xs, marginTop: spacing.md },
   input: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: roles.surfaceContainerHigh,
     borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: roles.outlineVariant,
     paddingVertical: 12,
     paddingHorizontal: spacing.md,
     fontFamily: 'Roboto_400Regular', fontSize: 15,
